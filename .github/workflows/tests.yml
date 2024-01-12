@@ -33,7 +33,7 @@ jobs:
 
       - name: "Build pap"
         run: |
-          make
+          make build-release
           make install PREFIX=./
 
       - name: "Run help"
