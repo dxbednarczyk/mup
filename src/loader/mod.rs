@@ -1,6 +1,7 @@
 use clap::ValueEnum;
 
 mod fabric;
+mod forge;
 mod paper;
 
 const FAKE_USER_AGENT: &str =
@@ -10,6 +11,7 @@ const FAKE_USER_AGENT: &str =
 pub enum Loader {
     Fabric,
     Paper,
+    Forge,
 }
 
 pub fn fetch(
@@ -21,6 +23,7 @@ pub fn fetch(
     match loader {
         &Loader::Fabric => fabric::fetch(minecraft_version, loader_version, allow_experimental)?,
         &Loader::Paper => paper::fetch(minecraft_version, loader_version, allow_experimental)?,
+        &Loader::Forge => forge::fetch(minecraft_version, loader_version, allow_experimental)?,
     }
 
     Ok(())

@@ -19,20 +19,7 @@ pub fn fetch(
     let mut minecraft = minecraft_input.clone();
     let mut loader = loader_input.clone();
 
-    let installer = get_latest_version("/installer", allow_experimental)?.version;
-
-    if minecraft_input.as_str() == "latest" {
-        minecraft = get_latest_version("/game", allow_experimental)?.version;
-    }
-
-    if loader_input.as_str() == "latest" {
-        loader = get_latest_version("/loader", allow_experimental)?.version;
-    }
-
-    let formatted_url = format!(
-        "{}/loader/{}/{}/{}/server/jar",
-        BASE_URL, minecraft, loader, installer
-    );
+    let formatted_url = get_formatted_url(&mut minecraft, &mut loader, allow_experimental)?;
 
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", super::FAKE_USER_AGENT)
@@ -46,6 +33,25 @@ pub fn fetch(
     Ok(())
 }
 
+fn get_formatted_url(minecraft: &mut String, loader: &mut String, allow_experimental: &bool) -> Result<String, anyhow::Error> {
+    let installer = get_latest_version("/installer", allow_experimental)?.version;
+
+    if minecraft.as_str() == "latest" {
+        *minecraft = get_latest_version("/game", allow_experimental)?.version;
+    }
+
+    if loader.as_str() == "latest" {
+        *loader = get_latest_version("/loader", allow_experimental)?.version;
+    }
+
+    let formatted_url = format!(
+        "{}/loader/{}/{}/{}/server/jar",
+        BASE_URL, minecraft, loader, installer
+    );
+
+    return Ok(formatted_url)
+}
+ 
 fn get_latest_version(path: &str, allow_experimental: &bool) -> Result<Version, anyhow::Error> {
     let body: Vec<Version> = ureq::get(&format!("{}{}", BASE_URL, path))
         .set("User-Agent", super::FAKE_USER_AGENT)

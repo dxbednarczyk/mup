@@ -2,7 +2,7 @@ use std::{fs::File, io};
 
 use anyhow::anyhow;
 use serde::Deserialize;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use tee::TeeReader;
 
 const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
@@ -21,7 +21,7 @@ struct Builds {
 struct Build {
     build: u16,
     channel: String,
-	downloads: Downloads,
+    downloads: Downloads,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
@@ -73,7 +73,7 @@ pub fn fetch(
     let hash = hasher.finalize();
 
     if format!("{:x}", hash) != loader.downloads.application.sha256 {
-        return Err(anyhow!("hashes do not match"))
+        return Err(anyhow!("hashes do not match"));
     }
 
     Ok(())
