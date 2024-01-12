@@ -20,7 +20,6 @@ struct Builds {
 #[derive(Clone, Debug, Default, Deserialize)]
 struct Build {
     build: u16,
-    channel: String,
     downloads: Downloads,
 }
 
@@ -35,26 +34,28 @@ struct Application {
 }
 
 pub fn fetch(
-    minecraft_input: &String,
-    loader_input: &String,
-    allow_experimental: &bool,
+    minecraft_input: &Option<String>,
+    loader_input: &Option<String>,
 ) -> Result<(), anyhow::Error> {
-    let mut minecraft = minecraft_input.clone();
-    let mut loader: Build = Build::default();
+    let mut minecraft = minecraft_input.as_deref().unwrap();
+    let mut build: Build = Build::default();
 
-    if minecraft_input.as_str() == "latest" {
-        minecraft = get_latest_version()?;
+    let latest: String;
+    if minecraft == "latest" {
+        latest = get_latest_version()?;
+        minecraft = latest.as_str();
     }
 
-    if loader_input.as_str() == "latest" {
-        loader = get_latest_loader(&minecraft, allow_experimental)?;
+    let loader = loader_input.as_deref().unwrap();
+    if loader == "latest" {
+        build = get_latest_loader(minecraft)?;
     } else {
-        loader.build = loader_input.parse()?;
+        build.build = loader.parse()?;
     }
 
     let formatted_url = format!(
         "{}/versions/{}/builds/{}/downloads/paper-{}-{}.jar",
-        BASE_URL, minecraft, loader.build, minecraft, loader.build,
+        BASE_URL, minecraft, build.build, minecraft, build.build,
     );
 
     let resp = ureq::get(&formatted_url)
@@ -62,7 +63,7 @@ pub fn fetch(
         .call()?
         .into_reader();
 
-    let filename = format!("paper-{}-{}.jar", minecraft, loader.build);
+    let filename = format!("paper-{}-{}.jar", minecraft, build.build);
     let mut file = File::create(filename)?;
 
     let mut hasher = Sha256::new();
@@ -72,7 +73,7 @@ pub fn fetch(
 
     let hash = hasher.finalize();
 
-    if format!("{:x}", hash) != loader.downloads.application.sha256 {
+    if format!("{:x}", hash) != build.downloads.application.sha256 {
         return Err(anyhow!("hashes do not match"));
     }
 
@@ -93,10 +94,7 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
     Ok(latest.unwrap().clone())
 }
 
-fn get_latest_loader(
-    minecraft_version: &String,
-    allow_experimental: &bool,
-) -> Result<Build, anyhow::Error> {
+fn get_latest_loader(minecraft_version: &str) -> Result<Build, anyhow::Error> {
     let formatted_url = format!("{}/versions/{}/builds", BASE_URL, minecraft_version);
 
     let body: Builds = ureq::get(formatted_url.as_str())
@@ -104,16 +102,7 @@ fn get_latest_loader(
         .call()?
         .into_json()?;
 
-    let mut latest = body.builds.last();
-
-    if !allow_experimental {
-        latest = body
-            .builds
-            .iter()
-            .rev()
-            .filter(|x| x.channel.as_str() == "default")
-            .next();
-    }
+    let latest = body.builds.last();
 
     if latest.is_none() {
         return Err(anyhow!("could not get latest loader version"));

@@ -14,15 +14,16 @@ struct PromosResponse {
 }
 
 pub fn fetch(
-    minecraft_input: &String,
-    loader_input: &String,
-    allow_experimental: &bool,
+    minecraft_input: &Option<String>,
+    loader_input: &Option<String>,
+    force_latest: &bool,
 ) -> Result<(), anyhow::Error> {
     let minecraft: Versioning;
-    let mut loader = loader_input.clone();
+    let mut loader = loader_input.as_deref().unwrap();
 
     let promos = get_promos()?;
 
+    let minecraft_input = minecraft_input.as_deref().unwrap();
     if minecraft_input == "latest" {
         let mut versions: Vec<Versioning> = promos
             .keys()
@@ -37,21 +38,24 @@ pub fn fetch(
     }
 
     if loader == "latest" {
-        let mut formatted_version = format!("{}-recommended", minecraft);
+        let mut loader_type = "recommended";
+        if *force_latest {
+            loader_type = "latest";
+        }
 
+        let formatted_version = format!("{}-{}", minecraft, loader_type);
         let promo = promos.get(&formatted_version);
 
-        if promo.is_none() && !allow_experimental {
+        if promo.is_none() {
             return Err(anyhow!(
-                "failed to find a recommended loader (tip: to download the latest loader regardless, pass --allow-experimental)"
+                "failed to find a recommended loader (tip: to download the latest loader regardless, pass --force-latest)"
             ));
         }
 
-        formatted_version = format!("{}-latest", minecraft);
-        loader = promos.get(&formatted_version).unwrap().clone();
+        loader = promo.unwrap();
     }
 
-    let formatted_url = get_formatted_url(&minecraft, &loader)?;
+    let formatted_url = get_formatted_url(&minecraft, loader)?;
 
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", super::FAKE_USER_AGENT)
@@ -74,7 +78,7 @@ fn get_promos() -> Result<HashMap<String, String>, anyhow::Error> {
     return Ok(resp.promos);
 }
 
-fn get_formatted_url(minecraft: &Versioning, loader: &String) -> Result<String, anyhow::Error> {
+fn get_formatted_url(minecraft: &Versioning, loader: &str) -> Result<String, anyhow::Error> {
     let mut formatted_url = String::from(BASE_MAVEN_URL);
 
     formatted_url.push_str(format!("/{}-{}-", minecraft.to_string(), loader).as_str());
@@ -138,7 +142,6 @@ fn handle_caveats(minecraft: &Versioning, formatted_url: &mut String) -> Result<
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,7 +154,7 @@ mod tests {
 
         let mut formatted_url = get_formatted_url(&minecraft, &loader)?;
         let mut expected = "https://maven.minecraftforge.net/net/minecraftforge/forge/1.9.4-12.17.0.2317-1.9.4/forge-1.9.4-12.17.0.2317-1.9.4-installer.jar";
-       
+
         assert_eq!(expected, formatted_url);
 
         // Test a non semver-compatible version
@@ -165,30 +168,27 @@ mod tests {
 
         // Test a complex version
         minecraft = Versioning::new("1.7.10_pre4").unwrap();
-        let expected: Result<(), anyhow::Error> = Err(anyhow!("complex version numbers are unsupported"));
+        let expected: Result<(), anyhow::Error> =
+            Err(anyhow!("complex version numbers are unsupported"));
         let result = get_formatted_url(&minecraft, &loader);
 
-        assert_eq!(expected.err().unwrap().to_string(), result.err().unwrap().to_string());
+        assert_eq!(
+            expected.err().unwrap().to_string(),
+            result.err().unwrap().to_string()
+        );
 
         // Test a version before Forge offered installer jarfiles
         minecraft = Versioning::new("1.1").unwrap();
-        let expected: Result<(), anyhow::Error> = Err(anyhow!("forge does not provide installer jarfiles before Minecraft 1.5.2"));
+        let expected: Result<(), anyhow::Error> = Err(anyhow!(
+            "forge does not provide installer jarfiles before Minecraft 1.5.2"
+        ));
         let result = get_formatted_url(&minecraft, &loader);
 
-        assert_eq!(expected.err().unwrap().to_string(), result.err().unwrap().to_string());
+        assert_eq!(
+            expected.err().unwrap().to_string(),
+            result.err().unwrap().to_string()
+        );
 
         Ok(())
-    }
-
-    #[test]
-    fn fetch_rejects_latest_without_experimental_flag() {
-        let minecraft = String::from("latest");
-        let loader = String::from("latest");
-        let allow_experimental = false;
-
-        let expected: Result<(), anyhow::Error> = Err(anyhow!("failed to find a recommended loader (tip: to download the latest loader regardless, pass --allow-experimental)"));
-        let result = fetch(&minecraft, &loader, &allow_experimental);
-
-        assert_eq!(expected.err().unwrap().to_string(), result.err().unwrap().to_string());
     }
 }

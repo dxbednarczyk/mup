@@ -12,20 +12,22 @@ struct Version {
 }
 
 pub fn fetch(
-    minecraft_input: &String,
-    loader_input: &String,
+    minecraft_input: &Option<String>,
+    loader_input: &Option<String>,
+    installer_input: &Option<String>,
     allow_experimental: &bool,
 ) -> Result<(), anyhow::Error> {
-    let mut minecraft = minecraft_input.clone();
-    let mut loader = loader_input.clone();
+    let minecraft = minecraft_input.as_deref().unwrap();
+    let loader = loader_input.as_deref().unwrap();
+    let installer = installer_input.as_deref().unwrap();
 
-    let formatted_url = get_formatted_url(&mut minecraft, &mut loader, allow_experimental)?;
+    let formatted_url = get_formatted_url(minecraft, loader, installer, allow_experimental)?;
 
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", super::FAKE_USER_AGENT)
         .call()?;
 
-    let filename = format!("fabric-{}-{}.jar", minecraft, loader);
+    let filename = format!("fabric.jar");
 
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;
@@ -33,34 +35,58 @@ pub fn fetch(
     Ok(())
 }
 
-fn get_formatted_url(minecraft: &mut String, loader: &mut String, allow_experimental: &bool) -> Result<String, anyhow::Error> {
-    let installer = get_latest_version("/installer", allow_experimental)?.version;
-
-    if minecraft.as_str() == "latest" {
-        *minecraft = get_latest_version("/game", allow_experimental)?.version;
-    }
-
-    if loader.as_str() == "latest" {
-        *loader = get_latest_version("/loader", allow_experimental)?.version;
-    }
-
+fn get_formatted_url(
+    minecraft: &str,
+    loader: &str,
+    installer: &str,
+    allow_experimental: &bool,
+) -> Result<String, anyhow::Error> {
     let formatted_url = format!(
         "{}/loader/{}/{}/{}/server/jar",
-        BASE_URL, minecraft, loader, installer
+        BASE_URL,
+        get_specific_version("/game", minecraft, allow_experimental)?.version,
+        get_specific_version("/loader", loader, allow_experimental)?.version,
+        get_specific_version("/installer", installer, allow_experimental)?.version
     );
 
-    return Ok(formatted_url)
+    return Ok(formatted_url);
 }
- 
-fn get_latest_version(path: &str, allow_experimental: &bool) -> Result<Version, anyhow::Error> {
-    let body: Vec<Version> = ureq::get(&format!("{}{}", BASE_URL, path))
+
+fn get_specific_version(
+    path: &str,
+    version: &str,
+    allow_experimental: &bool,
+) -> Result<Version, anyhow::Error> {
+    let versions: Vec<Version> = ureq::get(&format!("{}{}", BASE_URL, path))
         .set("User-Agent", super::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
-    let mut latest_version = body.get(0);
+    if version == "latest" {
+        return get_latest_version(&versions, allow_experimental);
+    }
+
+    let specific_version = versions.iter().filter(|p| &p.version == version).next();
+
+    if specific_version.is_none() {
+        let formatted = format!(
+            "{} version {} does not exist",
+            path.strip_prefix('/').unwrap(),
+            version
+        );
+        return Err(anyhow!(formatted));
+    }
+
+    Ok(specific_version.unwrap().clone())
+}
+
+fn get_latest_version(
+    versions: &Vec<Version>,
+    allow_experimental: &bool,
+) -> Result<Version, anyhow::Error> {
+    let mut latest_version = versions.get(0);
     if !allow_experimental {
-        latest_version = body.iter().filter(|x| x.stable).next();
+        latest_version = versions.iter().filter(|x| x.stable).next();
     }
 
     if latest_version.is_none() {
