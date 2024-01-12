@@ -41,26 +41,16 @@ jobs:
 
       - name: "Test Paper downloading"
         run: |
-          ./bin/pap download paper
-          ./bin/pap download paper --version 1.19.2
-          ./bin/pap download paper --version 1.19.2 --build 300
-
-      - name: "Test Purpur downloading"
-        run: |
-          ./bin/pap download purpur
-          ./bin/pap download purpur --version 1.14.2
-          ./bin/pap download purpur --version 1.14.2 --build 124
+          ./bin/pap loader paper
+          ./bin/pap loader paper -m 1.20.4 -b 379
 
       - name: "Test Fabric downloading"
         run: |
-           ./bin/pap download fabric
-           ./bin/pap download fabric --loader 0.13.3
-           ./bin/pap download fabric --installer 0.8.0
-           ./bin/pap download fabric --version 1.19.2
+           ./bin/pap loader fabric
+           ./bin/pap loader fabric -l 0.15.3 -i 1.0.0 -m 1.20.4
            
       - name: "Test Forge downloading"
         run: |
-           ./bin/pap download forge
-           ./bin/pap download forge --version 1.6.4
-           ./bin/pap download forge --version 1.9 --force-latest
-           ./bin/pap download forge --version 1.19.3 --installer 44.1.0
+           ./bin/pap loader forge
+           ./bin/pap loader forge --version 1.9 --force-latest
+           ./bin/pap loader forge --version 1.19.3 --installer 44.1.0
