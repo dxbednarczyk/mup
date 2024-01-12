@@ -27,9 +27,7 @@ pub fn fetch(
         .set("User-Agent", super::FAKE_USER_AGENT)
         .call()?;
 
-    let filename = format!("fabric.jar");
-
-    let mut file = File::create(filename)?;
+    let mut file = File::create("fabric.jar")?;
     io::copy(&mut resp.into_reader(), &mut file)?;
 
     Ok(())
@@ -42,14 +40,13 @@ fn get_formatted_url(
     allow_experimental: &bool,
 ) -> Result<String, anyhow::Error> {
     let formatted_url = format!(
-        "{}/loader/{}/{}/{}/server/jar",
-        BASE_URL,
+        "{BASE_URL}/loader/{}/{}/{}/server/jar",
         get_specific_version("/game", minecraft, allow_experimental)?.version,
         get_specific_version("/loader", loader, allow_experimental)?.version,
         get_specific_version("/installer", installer, allow_experimental)?.version
     );
 
-    return Ok(formatted_url);
+    Ok(formatted_url)
 }
 
 fn get_specific_version(
@@ -57,7 +54,7 @@ fn get_specific_version(
     version: &str,
     allow_experimental: &bool,
 ) -> Result<Version, anyhow::Error> {
-    let versions: Vec<Version> = ureq::get(&format!("{}{}", BASE_URL, path))
+    let versions: Vec<Version> = ureq::get(&format!("{BASE_URL}{path}"))
         .set("User-Agent", super::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
@@ -66,13 +63,12 @@ fn get_specific_version(
         return get_latest_version(&versions, allow_experimental);
     }
 
-    let specific_version = versions.iter().filter(|p| &p.version == version).next();
+    let specific_version = versions.iter().find(|p| p.version == version);
 
     if specific_version.is_none() {
         let formatted = format!(
-            "{} version {} does not exist",
+            "{} version {version} does not exist",
             path.strip_prefix('/').unwrap(),
-            version
         );
         return Err(anyhow!(formatted));
     }
@@ -81,12 +77,12 @@ fn get_specific_version(
 }
 
 fn get_latest_version(
-    versions: &Vec<Version>,
+    versions: &[Version],
     allow_experimental: &bool,
 ) -> Result<Version, anyhow::Error> {
     let mut latest_version = versions.get(0);
     if !allow_experimental {
-        latest_version = versions.iter().filter(|x| x.stable).next();
+        latest_version = versions.iter().find(|x| x.stable);
     }
 
     if latest_version.is_none() {

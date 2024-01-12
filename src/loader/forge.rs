@@ -18,24 +18,23 @@ pub fn fetch(
     loader_input: &Option<String>,
     force_latest: &bool,
 ) -> Result<(), anyhow::Error> {
-    let minecraft: Versioning;
     let mut loader = loader_input.as_deref().unwrap();
 
     let promos = get_promos()?;
 
     let minecraft_input = minecraft_input.as_deref().unwrap();
-    if minecraft_input == "latest" {
+    let minecraft = if minecraft_input == "latest" {
         let mut versions: Vec<Versioning> = promos
             .keys()
             .filter_map(|p| p.split('-').next())
-            .filter_map(|p| Versioning::new(p))
+            .filter_map(Versioning::new)
             .collect();
 
-        versions.sort_by(|a, b| Versioning::cmp(&a, &b));
-        minecraft = versions.last().unwrap().clone();
+        versions.sort_by(Versioning::cmp);
+        versions.last().unwrap().clone()
     } else {
-        minecraft = Versioning::new(minecraft_input).unwrap()
-    }
+        Versioning::new(minecraft_input).unwrap()
+    };
 
     if loader == "latest" {
         let mut loader_type = "recommended";
@@ -43,7 +42,7 @@ pub fn fetch(
             loader_type = "latest";
         }
 
-        let formatted_version = format!("{}-{}", minecraft, loader_type);
+        let formatted_version = format!("{minecraft}-{loader_type}");
         let promo = promos.get(&formatted_version);
 
         if promo.is_none() {
@@ -61,7 +60,7 @@ pub fn fetch(
         .set("User-Agent", super::FAKE_USER_AGENT)
         .call()?;
 
-    let filename = format!("forge-{}-{}.jar", minecraft.to_string(), loader);
+    let filename = format!("forge-{minecraft}-{loader}.jar");
 
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;
@@ -75,17 +74,17 @@ fn get_promos() -> Result<HashMap<String, String>, anyhow::Error> {
         .call()?
         .into_json()?;
 
-    return Ok(resp.promos);
+    Ok(resp.promos)
 }
 
 fn get_formatted_url(minecraft: &Versioning, loader: &str) -> Result<String, anyhow::Error> {
     let mut formatted_url = String::from(BASE_MAVEN_URL);
 
-    formatted_url.push_str(format!("/{}-{}-", minecraft.to_string(), loader).as_str());
+    formatted_url.push_str(format!("/{minecraft}-{loader}-").as_str());
 
     handle_caveats(minecraft, &mut formatted_url)?;
 
-    formatted_url.push_str(format!("/forge-{}-{}-", minecraft.to_string(), loader).as_str());
+    formatted_url.push_str(format!("/forge-{minecraft}-{loader}-").as_str());
 
     handle_caveats(minecraft, &mut formatted_url)?;
 
@@ -133,7 +132,7 @@ fn handle_caveats(minecraft: &Versioning, formatted_url: &mut String) -> Result<
             }
 
             if minor == 8 || minor == 9 {
-                formatted_url.push_str(format!("{}.{}.{}", major, minor, patch).as_str());
+                formatted_url.push_str(format!("{major}.{minor}.{patch}").as_str());
             }
         }
         Versioning::Complex(_) => return Err(anyhow!("complex version numbers are unsupported")),

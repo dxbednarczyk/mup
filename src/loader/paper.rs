@@ -54,8 +54,8 @@ pub fn fetch(
     }
 
     let formatted_url = format!(
-        "{}/versions/{}/builds/{}/downloads/paper-{}-{}.jar",
-        BASE_URL, minecraft, build.build, minecraft, build.build,
+        "{BASE_URL}/versions/{minecraft}/builds/{}/downloads/paper-{minecraft}-{}.jar",
+        build.build, build.build,
     );
 
     let resp = ureq::get(&formatted_url)
@@ -63,7 +63,7 @@ pub fn fetch(
         .call()?
         .into_reader();
 
-    let filename = format!("paper-{}-{}.jar", minecraft, build.build);
+    let filename = format!("paper-{minecraft}-{}.jar", build.build);
     let mut file = File::create(filename)?;
 
     let mut hasher = Sha256::new();
@@ -73,7 +73,7 @@ pub fn fetch(
 
     let hash = hasher.finalize();
 
-    if format!("{:x}", hash) != build.downloads.application.sha256 {
+    if format!("{hash:x}") != build.downloads.application.sha256 {
         return Err(anyhow!("hashes do not match"));
     }
 
@@ -95,7 +95,7 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
 }
 
 fn get_latest_loader(minecraft_version: &str) -> Result<Build, anyhow::Error> {
-    let formatted_url = format!("{}/versions/{}/builds", BASE_URL, minecraft_version);
+    let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
 
     let body: Builds = ureq::get(formatted_url.as_str())
         .set("User-Agent", super::FAKE_USER_AGENT)

@@ -1,0 +1,66 @@
+name: testing
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  unit-testing:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: "cargo test"
+
+  testing:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Build pap"
+        run: |
+          make
+          make install PREFIX=./
+
+      - name: "Run help"
+        run: "./bin/pap help"
+
+      - name: "Test Paper downloading"
+        run: |
+          ./bin/pap download paper
+          ./bin/pap download paper --version 1.19.2
+          ./bin/pap download paper --version 1.19.2 --build 300
+
+      - name: "Test Purpur downloading"
+        run: |
+          ./bin/pap download purpur
+          ./bin/pap download purpur --version 1.14.2
+          ./bin/pap download purpur --version 1.14.2 --build 124
+
+      - name: "Test Fabric downloading"
+        run: |
+           ./bin/pap download fabric
+           ./bin/pap download fabric --loader 0.13.3
+           ./bin/pap download fabric --installer 0.8.0
+           ./bin/pap download fabric --version 1.19.2
+           
+      - name: "Test Forge downloading"
+        run: |
+           ./bin/pap download forge
+           ./bin/pap download forge --version 1.6.4
+           ./bin/pap download forge --version 1.9 --force-latest
+           ./bin/pap download forge --version 1.19.3 --installer 44.1.0
