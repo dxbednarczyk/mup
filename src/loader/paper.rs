@@ -19,7 +19,7 @@ struct Builds {
 
 #[derive(Clone, Debug, Default, Deserialize)]
 struct Build {
-    build: u16,
+    build: usize,
     downloads: Downloads,
 }
 
@@ -35,10 +35,9 @@ struct Application {
 
 pub fn fetch(
     minecraft_input: &Option<String>,
-    loader_input: &Option<String>,
+    build_input: &Option<String>,
 ) -> Result<(), anyhow::Error> {
     let mut minecraft = minecraft_input.as_deref().unwrap();
-    let mut build: Build = Build::default();
 
     let latest: String;
     if minecraft == "latest" {
@@ -46,12 +45,12 @@ pub fn fetch(
         minecraft = latest.as_str();
     }
 
-    let loader = loader_input.as_deref().unwrap();
-    if loader == "latest" {
-        build = get_latest_loader(minecraft)?;
+    let unwrapped = build_input.as_deref().unwrap();
+    let build = if unwrapped == "latest" {
+        get_latest_build(minecraft)?
     } else {
-        build.build = loader.parse()?;
-    }
+        get_specific_build(minecraft, unwrapped.parse()?)?
+    };
 
     let formatted_url = format!(
         "{BASE_URL}/versions/{minecraft}/builds/{}/downloads/paper-{minecraft}-{}.jar",
@@ -94,7 +93,7 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
     Ok(latest.unwrap().clone())
 }
 
-fn get_latest_loader(minecraft_version: &str) -> Result<Build, anyhow::Error> {
+fn get_latest_build(minecraft_version: &str) -> Result<Build, anyhow::Error> {
     let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
 
     let body: Builds = ureq::get(formatted_url.as_str())
@@ -106,6 +105,23 @@ fn get_latest_loader(minecraft_version: &str) -> Result<Build, anyhow::Error> {
 
     if latest.is_none() {
         return Err(anyhow!("could not get latest loader version"));
+    }
+
+    Ok(latest.unwrap().clone())
+}
+
+fn get_specific_build(minecraft_version: &str, build: usize) -> Result<Build, anyhow::Error> {
+    let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
+
+    let body: Builds = ureq::get(formatted_url.as_str())
+        .set("User-Agent", super::FAKE_USER_AGENT)
+        .call()?
+        .into_json()?;
+
+    let latest = body.builds.iter().find(|p| p.build == build);
+
+    if latest.is_none() {
+        return Err(anyhow!("could not get specific loader version"));
     }
 
     Ok(latest.unwrap().clone())

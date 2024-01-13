@@ -10,18 +10,7 @@ permissions:
   pull-requests: read
 
 jobs:
-  unit-testing:
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - run: "cargo test"
-
-  testing:
+  test:
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -35,6 +24,10 @@ jobs:
         run: |
           make build-release
           make install PREFIX=./
+
+      - name: "Run unit tests"
+        run: |
+          cargo test
 
       - name: "Run help"
         run: "./bin/pap help"

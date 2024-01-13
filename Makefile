@@ -1,20 +1,15 @@
 PREFIX = $(HOME)/.local
 
 build:
-	mkdir -vp build
-	cargo build --target-dir=build
+	cargo build
 
 build-release:
-	mkdir -vp build
-	cargo build --target-dir=build --release
+	cargo build --release
 
-install: build/release/pap
+install: target/release/pap
 	mkdir -p $(PREFIX)/bin
-	mv build/release/pap $(PREFIX)/bin
+	mv target/release/pap $(PREFIX)/bin
 	chmod +x $(PREFIX)/bin/pap*
-
-clean:
-	rm -rf build
 
 lint:
 	cargo fmt
