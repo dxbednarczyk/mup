@@ -1,12 +1,15 @@
 use std::{collections::HashMap, fs::File, io};
 
 use anyhow::anyhow;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
 use versions::{Chunk, Versioning};
 
 const PROMOS_URL: &str =
     "https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json";
 const BASE_MAVEN_URL: &str = "https://maven.minecraftforge.net/net/minecraftforge/forge";
+
+static CUTOFF: Lazy<Versioning> = Lazy::new(|| Versioning::new("1.5.2").unwrap());
 
 #[derive(Debug, Deserialize)]
 struct PromosResponse {
@@ -15,10 +18,10 @@ struct PromosResponse {
 
 pub fn fetch(
     minecraft_input: &Option<String>,
-    loader_input: &Option<String>,
+    installer_input: &Option<String>,
     force_latest: &bool,
 ) -> Result<(), anyhow::Error> {
-    let mut loader = loader_input.as_deref().unwrap();
+    let mut installer = installer_input.as_deref().unwrap();
 
     let promos = get_promos()?;
 
@@ -36,31 +39,31 @@ pub fn fetch(
         Versioning::new(minecraft_input).unwrap()
     };
 
-    if loader == "latest" {
-        let mut loader_type = "recommended";
+    if installer == "latest" {
+        let mut installer_type = "recommended";
         if *force_latest {
-            loader_type = "latest";
+            installer_type = "latest";
         }
 
-        let formatted_version = format!("{minecraft}-{loader_type}");
+        let formatted_version = format!("{minecraft}-{installer_type}");
         let promo = promos.get(&formatted_version);
 
         if promo.is_none() {
             return Err(anyhow!(
-                "failed to find a recommended loader (tip: to download the latest loader regardless, pass --force-latest)"
+                "failed to find a recommended installer (tip: to download the latest installer regardless, pass --force-latest)"
             ));
         }
 
-        loader = promo.unwrap();
+        installer = promo.unwrap();
     }
 
-    let formatted_url = get_formatted_url(&minecraft, loader)?;
+    let formatted_url = get_formatted_url(&minecraft, installer)?;
 
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", super::FAKE_USER_AGENT)
         .call()?;
 
-    let filename = format!("forge-{minecraft}-{loader}.jar");
+    let filename = format!("forge-{minecraft}-{installer}.jar");
 
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;
@@ -78,33 +81,37 @@ fn get_promos() -> Result<HashMap<String, String>, anyhow::Error> {
 }
 
 fn get_formatted_url(minecraft: &Versioning, loader: &str) -> Result<String, anyhow::Error> {
-    let mut formatted_url = String::from(BASE_MAVEN_URL);
+    let prefix = get_version_tag(minecraft, loader)?;
+    let suffix = get_version_tag(minecraft, loader)?;
 
-    formatted_url.push_str(format!("/{minecraft}-{loader}-").as_str());
-
-    handle_caveats(minecraft, &mut formatted_url)?;
-
-    formatted_url.push_str(format!("/forge-{minecraft}-{loader}-").as_str());
-
-    handle_caveats(minecraft, &mut formatted_url)?;
-
-    formatted_url.push_str("-installer.jar");
+    let formatted_url = format!("{BASE_MAVEN_URL}/{prefix}/forge-{suffix}-installer.jar");
 
     Ok(formatted_url)
 }
 
-fn handle_caveats(minecraft: &Versioning, formatted_url: &mut String) -> Result<(), anyhow::Error> {
+// Did I mention already how much I hate the Forge versioning scheme?
+// If not, reading this function equates to an essay on it.
+fn get_version_tag(minecraft: &Versioning, loader: &str) -> Result<String, anyhow::Error> {
     match minecraft {
         Versioning::Ideal(s) => {
-            if s.minor <= 5 && s.patch < 2 {
+            if minecraft < &CUTOFF {
                 return Err(anyhow!(
                     "forge does not provide loader jarfiles before Minecraft 1.5.2"
                 ));
             }
+            
+            let stringified = s.to_string();
 
-            if s.minor == 8 || s.minor == 9 {
-                formatted_url.push_str(format!("{}.{}.{}", s.major, s.minor, s.patch).as_str());
+            let wonky_range = 7..10;
+            if !wonky_range.contains(&s.minor) {
+                return Ok(format!("{stringified}-{loader}"));
             }
+
+            if s.minor == 7 && s.patch == 2 {
+                return Ok(format!("1.7.2-{loader}-mc172"))
+            }
+
+            Ok(format!("{stringified}-{loader}-{stringified}"))
         }
         Versioning::General(v) => {
             let release = &v.chunks.0;
@@ -119,26 +126,22 @@ fn handle_caveats(minecraft: &Versioning, formatted_url: &mut String) -> Result<
                 .unwrap_or(&Chunk::Numeric(0))
                 .single_digit()
                 .unwrap();
-            let patch = release
-                .get(2)
-                .unwrap_or(&Chunk::Numeric(0))
-                .single_digit()
-                .unwrap();
 
-            if minor <= 5 && patch < 2 {
+            if minor <= 5 {
                 return Err(anyhow!(
-                    "forge does not provide installer jarfiles before Minecraft 1.5.2"
+                    "invalid minecraft version provided"
                 ));
             }
 
-            if minor == 8 || minor == 9 {
-                formatted_url.push_str(format!("{major}.{minor}.{patch}").as_str());
+            let wonky_range = 9..11;
+            if wonky_range.contains(&minor) {
+                return Ok(format!("{major}.{minor}-{loader}-{major}.{minor}.0"));
             }
+                
+            Ok(format!("{major}.{minor}-{loader}"))
         }
         Versioning::Complex(_) => return Err(anyhow!("complex version numbers are unsupported")),
     }
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -176,10 +179,22 @@ mod tests {
             result.err().unwrap().to_string()
         );
 
-        // Test a version before Forge offered installer jarfiles
+        // Test a generally invalid version
         minecraft = Versioning::new("1.1").unwrap();
         let expected: Result<(), anyhow::Error> = Err(anyhow!(
-            "forge does not provide installer jarfiles before Minecraft 1.5.2"
+            "invalid minecraft version provided"
+        ));
+        let result = get_formatted_url(&minecraft, &loader);
+
+        assert_eq!(
+            expected.err().unwrap().to_string(),
+            result.err().unwrap().to_string()
+        );
+
+        // Test a version before 1.5.2
+        minecraft = Versioning::new("1.2.5").unwrap();
+        let expected: Result<(), anyhow::Error> = Err(anyhow!(
+            "forge does not provide loader jarfiles before Minecraft 1.5.2"
         ));
         let result = get_formatted_url(&minecraft, &loader);
 

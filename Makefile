@@ -6,6 +6,9 @@ build:
 build-release:
 	cargo build --release
 
+clean:
+	cargo clean
+
 install: target/release/pap
 	mkdir -p $(PREFIX)/bin
 	mv target/release/pap $(PREFIX)/bin
