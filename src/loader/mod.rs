@@ -44,7 +44,7 @@ pub enum Loader {
         minecraft_version: Option<String>,
 
         /// Installer version to target
-        #[arg(short, long, default_value = "latest")]
+        #[arg(short, long, default_value = "recommended")]
         installer_version: Option<String>,
 
         /// Use the latest installer, regardless of if there is a recommended version

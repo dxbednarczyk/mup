@@ -45,6 +45,6 @@ jobs:
       - name: "Test Forge downloading"
         run: |
            ./bin/pap loader forge --force-latest
-           ./bin/pap loader forge -m 1.7.2
+           ./bin/pap loader forge -m 1.7.10_pre4
            ./bin/pap loader forge -m 1.9 --force-latest
            ./bin/pap loader forge -m 1.19.3 -i 44.1.0

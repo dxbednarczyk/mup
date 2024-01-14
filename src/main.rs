@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 
 mod loader;
+mod eula;
 
 #[derive(Debug, Parser)]
 #[command(author = "Damian Bednarczyk <damian@bednarczyk.xyz>")]
@@ -14,8 +15,12 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// Download a server or modloader jarfile
     #[command(subcommand)]
     Loader(loader::Loader),
+
+    /// Sign the eula in the current directory
+    Eula,
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -23,6 +28,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     match &cli.command {
         Some(Commands::Loader(l)) => loader::fetch(l)?,
+        Some(Commands::Eula) => eula::sign()?,
         None => (),
     }
 
