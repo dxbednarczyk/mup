@@ -9,9 +9,16 @@ const PROMOS_URL: &str =
     "https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json";
 const BASE_MAVEN_URL: &str = "https://maven.minecraftforge.net/net/minecraftforge/forge";
 
+// Forge does not provide installer jarfiles before Minecraft version 1.5.2
 static MINECRAFT_CUTOFF: Lazy<Versioning> = Lazy::new(|| Versioning::new("1.5.2").unwrap());
-static LOADER_CUTOFF_TRIPLE: Lazy<Versioning> = Lazy::new(|| Versioning::new("12.16.1.1938").unwrap());
-static LOADER_CUTOFF_DOUBLE: Lazy<Versioning> = Lazy::new(|| Versioning::new("12.16.0.1885").unwrap());
+
+// The cutoff in 1.9 builds after which versions are formatted as 1.X-[installer]-1.X.0
+static LOADER_CUTOFF_TRIPLE: Lazy<Versioning> =
+    Lazy::new(|| Versioning::new("12.16.1.1938").unwrap());
+
+// The cutoff in 1.9 builds before which versions are formatted as 1.9-[installer]
+static LOADER_CUTOFF_DOUBLE: Lazy<Versioning> =
+    Lazy::new(|| Versioning::new("12.16.0.1885").unwrap());
 
 #[derive(Debug, Deserialize)]
 struct PromosResponse {
@@ -24,7 +31,12 @@ pub fn fetch(
     force_latest: &bool,
 ) -> Result<(), anyhow::Error> {
     let minecraft = minecraft_input.as_deref().unwrap();
-    let mut installer = installer_input.as_deref().unwrap();
+
+    let installer = if *force_latest {
+        "latest"
+    } else {
+        installer_input.as_deref().unwrap()
+    };
 
     let promos = get_promos()?;
 
@@ -42,27 +54,15 @@ pub fn fetch(
         Versioning::new(minecraft).unwrap()
     };
 
-    let installer_version = if installer == "recommended" {
-        if *force_latest {
-            installer = "latest";
-        }
+    let formatted_version = format!("{minecraft_version}-{installer}");
+    let promo = promos.get(&formatted_version);
 
-        let formatted_version = format!("{minecraft_version}-{installer}");
-        let promo = promos.get(&formatted_version);
-
-        if promo.is_none() {
-            if *force_latest {
-                return Err(anyhow!(
-                    "failed to find the latest installer, is this a valid Minecraft version?"
-                ));
-            }
-
-            return Err(anyhow!("failed to find a recommended installer"));
-        }
-
-        promo.unwrap()
-    } else {
-        installer
+    let installer_version = match installer {
+        "latest" => promo.ok_or(anyhow!(
+            "failed to get the latest installer, is this a valid Minecraft version?"
+        ))?,
+        "recommended" => promo.ok_or(anyhow!("failed to find a recommended installer"))?,
+        _ => installer,
     };
 
     let formatted_url = get_formatted_url(&minecraft_version, installer_version)?;
@@ -106,35 +106,30 @@ fn get_version_tag(minecraft: &Versioning, loader: &str) -> Result<String, anyho
 
     match minecraft {
         Versioning::Ideal(s) => {
-            let stringified = s.to_string();
-
             if !(7..10).contains(&s.minor) {
-                return Ok(format!("{stringified}-{loader}"));
+                return Ok(format!("{s}-{loader}"));
             }
 
             if s.minor == 7 && s.patch == 2 {
                 return Ok(format!("1.7.2-{loader}-mc172"));
             }
 
-            Ok(format!("{stringified}-{loader}-{stringified}"))
+            Ok(format!("{s}-{loader}-{s}"))
         }
         Versioning::General(v) => {
-            let release = &v.chunks.0;
-
-            let major = release[0].to_string();
-            let minor: u32 = release[1].to_string().parse()?;
+            let minor: u32 = v.chunks.0[1].to_string().parse()?;
 
             let loader = Versioning::new(loader).unwrap();
 
             if (9..11).contains(&minor) && &loader >= &LOADER_CUTOFF_TRIPLE {
-                return Ok(format!("{major}.{minor}-{loader}-{major}.{minor}.0"));
+                return Ok(format!("{v}-{loader}-{v}.0"));
             }
 
             if minor == 9 && &loader <= &LOADER_CUTOFF_DOUBLE {
-                return Ok(format!("{major}.{minor}-{loader}-{major}.{minor}"));
+                return Ok(format!("{v}-{loader}-{v}"));
             }
 
-            Ok(format!("{major}.{minor}-{loader}"))
+            Ok(format!("{v}-{loader}"))
         }
         // This is currently the only release that ends up down here...
         Versioning::Complex(_) => Ok(format!("1.7.10_pre4-{loader}-prerelease")),

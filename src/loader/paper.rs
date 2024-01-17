@@ -37,19 +37,17 @@ pub fn fetch(
     minecraft_input: &Option<String>,
     build_input: &Option<String>,
 ) -> Result<(), anyhow::Error> {
-    let mut minecraft = minecraft_input.as_deref().unwrap();
+    let mut minecraft = minecraft_input.as_deref().unwrap().to_string();
 
-    let latest: String;
     if minecraft == "latest" {
-        latest = get_latest_version()?;
-        minecraft = latest.as_str();
+        minecraft = get_latest_version()?;
     }
 
     let unwrapped = build_input.as_deref().unwrap();
     let build = if unwrapped == "latest" {
-        get_latest_build(minecraft)?
+        get_latest_build(&minecraft)?
     } else {
-        get_specific_build(minecraft, unwrapped.parse()?)?
+        get_specific_build(&minecraft, unwrapped.parse()?)?
     };
 
     let formatted_url = format!(
