@@ -11,6 +11,7 @@ const BASE_MAVEN_URL: &str = "https://maven.minecraftforge.net/net/minecraftforg
 
 static MINECRAFT_CUTOFF: Lazy<Versioning> = Lazy::new(|| Versioning::new("1.5.2").unwrap());
 static LOADER_CUTOFF_TRIPLE: Lazy<Versioning> = Lazy::new(|| Versioning::new("12.16.1.1938").unwrap());
+static LOADER_CUTOFF_DOUBLE: Lazy<Versioning> = Lazy::new(|| Versioning::new("12.16.0.1885").unwrap());
 
 #[derive(Debug, Deserialize)]
 struct PromosResponse {
@@ -129,14 +130,14 @@ fn get_version_tag(minecraft: &Versioning, loader: &str) -> Result<String, anyho
                 return Ok(format!("{major}.{minor}-{loader}-{major}.{minor}.0"));
             }
 
-            if minor == 9 && &loader < &LOADER_CUTOFF_TRIPLE {
+            if minor == 9 && &loader <= &LOADER_CUTOFF_DOUBLE {
                 return Ok(format!("{major}.{minor}-{loader}-{major}.{minor}"));
             }
 
             Ok(format!("{major}.{minor}-{loader}"))
         }
         // This is currently the only release that ends up down here...
-        Versioning::Complex(_) => Ok("1.7.10_pre4-10.12.2.1149-prerelease".to_string()),
+        Versioning::Complex(_) => Ok(format!("1.7.10_pre4-{loader}-prerelease")),
     }
 }
 
