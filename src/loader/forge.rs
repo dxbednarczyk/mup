@@ -9,7 +9,8 @@ const PROMOS_URL: &str =
     "https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json";
 const BASE_MAVEN_URL: &str = "https://maven.minecraftforge.net/net/minecraftforge/forge";
 
-static CUTOFF: Lazy<Versioning> = Lazy::new(|| Versioning::new("1.5.2").unwrap());
+static MINECRAFT_CUTOFF: Lazy<Versioning> = Lazy::new(|| Versioning::new("1.5.2").unwrap());
+static LOADER_CUTOFF_TRIPLE: Lazy<Versioning> = Lazy::new(|| Versioning::new("12.16.1.1938").unwrap());
 
 #[derive(Debug, Deserialize)]
 struct PromosResponse {
@@ -96,7 +97,7 @@ fn get_formatted_url(minecraft: &Versioning, loader: &str) -> Result<String, any
 
 // Did I mention already how much I hate the Forge versioning scheme?
 fn get_version_tag(minecraft: &Versioning, loader: &str) -> Result<String, anyhow::Error> {
-    if minecraft < &CUTOFF {
+    if minecraft < &MINECRAFT_CUTOFF {
         return Err(anyhow!(
             "forge does not provide installer jarfiles before Minecraft 1.5.2"
         ));
@@ -122,8 +123,14 @@ fn get_version_tag(minecraft: &Versioning, loader: &str) -> Result<String, anyho
             let major = release[0].to_string();
             let minor: u32 = release[1].to_string().parse()?;
 
-            if (9..11).contains(&minor) {
+            let loader = Versioning::new(loader).unwrap();
+
+            if (9..11).contains(&minor) && &loader >= &LOADER_CUTOFF_TRIPLE {
                 return Ok(format!("{major}.{minor}-{loader}-{major}.{minor}.0"));
+            }
+
+            if minor == 9 && &loader < &LOADER_CUTOFF_TRIPLE {
+                return Ok(format!("{major}.{minor}-{loader}-{major}.{minor}"));
             }
 
             Ok(format!("{major}.{minor}-{loader}"))

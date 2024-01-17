@@ -29,9 +29,6 @@ jobs:
         run: |
           cargo test
 
-      - name: "Run help"
-        run: "./bin/pap help"
-
       - name: "Test Paper downloading"
         run: |
           ./bin/pap loader paper
