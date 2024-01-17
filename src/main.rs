@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
-mod loader;
 mod eula;
+mod loader;
 
 #[derive(Debug, Parser)]
 #[command(author = "Damian Bednarczyk <damian@bednarczyk.xyz>")]

@@ -80,7 +80,7 @@ fn get_latest_version(
     versions: &[Version],
     allow_experimental: &bool,
 ) -> Result<Version, anyhow::Error> {
-    let mut latest_version = versions.get(0);
+    let mut latest_version = versions.first();
     if !allow_experimental {
         latest_version = versions.iter().find(|x| x.stable);
     }

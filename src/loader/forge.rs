@@ -34,6 +34,7 @@ pub fn fetch(
             .collect();
 
         versions.sort_by(Versioning::cmp);
+
         versions.last().unwrap().clone()
     } else {
         Versioning::new(minecraft).unwrap()
@@ -44,14 +45,14 @@ pub fn fetch(
             installer = "latest";
         }
 
-        let formatted_version = format!("{minecraft}-{installer}");
+        let formatted_version = format!("{minecraft_version}-{installer}");
         let promo = promos.get(&formatted_version);
 
         if promo.is_none() {
             if *force_latest {
-                return Err(anyhow!(anyhow!(
+                return Err(anyhow!(
                     "failed to find the latest installer, is this a valid Minecraft version?"
-                )));
+                ));
             }
 
             return Err(anyhow!("failed to find a recommended installer"));
@@ -68,7 +69,7 @@ pub fn fetch(
         .set("User-Agent", super::FAKE_USER_AGENT)
         .call()?;
 
-    let filename = format!("forge-{minecraft}-{installer}.jar");
+    let filename = format!("forge-{}-{}.jar", minecraft_version, installer_version);
 
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;
