@@ -22,8 +22,8 @@ jobs:
 
       - name: "Build pap"
         run: |
-          make build-release
-          make install PREFIX=./
+          make build
+          make install-testing PREFIX=./
 
       - name: "Run unit tests"
         run: |
