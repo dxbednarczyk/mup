@@ -1,9 +1,8 @@
 use clap::Subcommand;
 
-mod project;
-mod version;
+mod actions;
 
-pub const BASE_URL: &str = "https://api.modrinth.com/v2"; 
+pub const BASE_URL: &str = "https://api.modrinth.com/v2";
 
 #[derive(Debug, Subcommand)]
 pub enum Project {
@@ -14,8 +13,8 @@ pub enum Project {
         id: String,
 
         /// Minecraft version to target
-        #[arg(short, long, default_value = "latest")]
-        minecraft_version: Option<String>,
+        #[arg(short, long, required = true)]
+        minecraft_version: String,
 
         /// Project version ID to target
         #[arg(short, long, default_value = "latest")]
@@ -29,7 +28,12 @@ pub enum Project {
 
 pub fn action(project: &Project) -> Result<(), anyhow::Error> {
     match project {
-        Project::Add { id, minecraft_version, project_version, loader } => project::add(id, minecraft_version, project_version, loader)?,
+        Project::Add {
+            id,
+            minecraft_version,
+            project_version,
+            loader,
+        } => actions::add(id, minecraft_version, project_version, loader)?,
     }
 
     Ok(())
