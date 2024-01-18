@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 mod eula;
 mod loader;
-mod mods;
+mod project;
 
 #[derive(Debug, Parser)]
 #[command(author = "Damian Bednarczyk <damian@bednarczyk.xyz>")]
@@ -20,9 +20,9 @@ enum Commands {
     #[command(subcommand)]
     Loader(loader::Loader),
 
-    /// Work with installed plugins or mods
+    /// Work with Modrinth plugins and mods
     #[command(subcommand)]
-    Mod(mods::Mod),
+    Project(project::Project),
 
     /// Sign the eula in the current directory
     Eula,
@@ -33,7 +33,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     match &cli.command {
         Some(Commands::Loader(l)) => loader::fetch(l)?,
-        Some(Commands::Mod(m)) => mods::action(m)?,
+        Some(Commands::Project(m)) => project::action(m)?,
         Some(Commands::Eula) => eula::sign()?,
         None => (),
     }

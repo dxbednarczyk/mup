@@ -310,6 +310,7 @@ dependencies = [
  "clap",
  "once_cell",
  "serde",
+ "serde_json",
  "sha2",
  "tee",
  "ureq",
