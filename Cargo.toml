@@ -11,6 +11,6 @@ clap = { version = "4.4", features = ["derive", "cargo"] }
 once_cell = "1.19"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
-tee = "0.1"
+tee = { git = "https://github.com/fredrik-hammar/tee.git", branch = "master" }
 ureq = { version = "2.9", features = ["json"] }
 versions = "6.1"

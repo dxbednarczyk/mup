@@ -3,7 +3,6 @@ use std::{fs::File, io};
 use anyhow::anyhow;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use tee::TeeReader;
 
 const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
 
@@ -65,7 +64,7 @@ pub fn fetch(
 
     let mut hasher = Sha256::new();
 
-    let mut tee = TeeReader::new(resp, &mut file);
+    let mut tee = tee::tee(resp, &mut file);
     io::copy(&mut tee, &mut hasher)?;
 
     let hash = hasher.finalize();
