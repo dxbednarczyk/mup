@@ -24,7 +24,7 @@ pub fn fetch(
     let formatted_url = get_formatted_url(minecraft, loader, installer, allow_experimental)?;
 
     let resp = ureq::get(&formatted_url)
-        .set("User-Agent", super::FAKE_USER_AGENT)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
 
     let mut file = File::create("fabric.jar")?;
@@ -55,7 +55,7 @@ fn get_specific_version(
     allow_experimental: &bool,
 ) -> Result<Version, anyhow::Error> {
     let versions: Vec<Version> = ureq::get(&format!("{BASE_URL}{path}"))
-        .set("User-Agent", super::FAKE_USER_AGENT)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 

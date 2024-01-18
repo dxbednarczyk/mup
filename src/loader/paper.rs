@@ -55,7 +55,7 @@ pub fn fetch(
     );
 
     let resp = ureq::get(&formatted_url)
-        .set("User-Agent", super::FAKE_USER_AGENT)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_reader();
 
@@ -78,7 +78,7 @@ pub fn fetch(
 
 fn get_latest_version() -> Result<String, anyhow::Error> {
     let body: Versions = ureq::get(BASE_URL)
-        .set("User-Agent", super::FAKE_USER_AGENT)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
@@ -94,7 +94,7 @@ fn get_latest_build(minecraft_version: &str) -> Result<Build, anyhow::Error> {
     let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
 
     let body: Builds = ureq::get(formatted_url.as_str())
-        .set("User-Agent", super::FAKE_USER_AGENT)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
@@ -111,7 +111,7 @@ fn get_specific_build(minecraft_version: &str, build: usize) -> Result<Build, an
     let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
 
     let body: Builds = ureq::get(formatted_url.as_str())
-        .set("User-Agent", super::FAKE_USER_AGENT)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 

@@ -68,7 +68,7 @@ pub fn fetch(
     let formatted_url = get_formatted_url(&minecraft_version, installer_version)?;
 
     let resp = ureq::get(&formatted_url)
-        .set("User-Agent", super::FAKE_USER_AGENT)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
 
     let filename = format!("forge-{}-{}.jar", minecraft_version, installer_version);
@@ -81,7 +81,7 @@ pub fn fetch(
 
 fn get_promos() -> Result<HashMap<String, String>, anyhow::Error> {
     let resp: PromosResponse = ureq::get(PROMOS_URL)
-        .set("User-Agent", super::FAKE_USER_AGENT)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
