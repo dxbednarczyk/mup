@@ -1,4 +1,7 @@
-use std::{fs::File, io};
+use std::{
+    fs::{self, File},
+    io,
+};
 
 use anyhow::anyhow;
 use pap::FAKE_USER_AGENT;
@@ -6,21 +9,23 @@ use serde::Deserialize;
 use sha2::{Digest, Sha512};
 use versions::Versioning;
 
+use super::lockfile;
+
 #[derive(Debug, Deserialize)]
-struct Version {
+pub struct Version {
     game_versions: Vec<String>,
     loaders: Vec<String>,
-    version_number: String,
+    pub version_number: String,
     //version_type: String,
     files: Vec<ProjectFile>,
     //dependencies: Vec<Value>,
 }
 
 #[derive(Debug, Deserialize)]
-struct ProjectFile {
+pub struct ProjectFile {
     hashes: Hashes,
     url: String,
-    filename: String,
+    pub filename: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -29,7 +34,8 @@ struct Hashes {
 }
 
 #[derive(Debug, Deserialize)]
-struct ProjectInfo {
+pub struct ProjectInfo {
+    pub slug: String,
     server_side: String,
     loaders: Vec<String>,
     game_versions: Vec<String>,
@@ -49,43 +55,44 @@ pub fn add(
 ) -> Result<(), anyhow::Error> {
     let formatted_url = format!("{}/project/{id}", super::BASE_URL);
 
-    let resp: ProjectInfo = ureq::get(&formatted_url)
+    let project_info: ProjectInfo = ureq::get(&formatted_url)
         .set("User-Agent", FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
-    if resp.server_side == "unsupported" {
+    if project_info.server_side == "unsupported" {
         return Err(anyhow!("project {id} does not support server side"));
     }
 
     let mut loader = loader_input.as_ref();
     if loader.is_none() {
-        if resp.loaders.len() > 1 {
+        if project_info.loaders.len() > 1 {
             return Err(anyhow!(
                 "project supports more than one loader, please specify which to target"
             ));
         }
 
-        loader = Some(resp.loaders.first().unwrap())
+        loader = Some(project_info.loaders.first().unwrap())
     }
 
-    if minecraft_input.as_str() != "latest" && !resp.game_versions.contains(minecraft_input) {
+    if minecraft_input.as_str() != "latest" && !project_info.game_versions.contains(minecraft_input)
+    {
         return Err(anyhow!(
             "project does not support Minecraft version {minecraft_input}"
         ));
     }
 
     let project = project_version.as_ref().unwrap();
-    if project.as_str() != "latest" && !resp.versions.contains(project) {
+    if project.as_str() != "latest" && !project_info.versions.contains(project) {
         return Err(anyhow!("project version {project} does not exist"));
     }
 
-    let version_info = get_version(&resp, minecraft_input, project)?;
-
     let loader = loader.unwrap();
-    if !resp.loaders.contains(loader) {
+    if !project_info.loaders.contains(loader) {
         return Err(anyhow!("project does not support {loader} loader"));
     }
+
+    let version_info = get_version(&project_info, minecraft_input, project)?;
 
     if !version_info.loaders.contains(loader) {
         return Err(anyhow!(
@@ -115,8 +122,12 @@ pub fn add(
     let hash = hasher.finalize();
 
     if format!("{hash:x}") != file.hashes.sha512 {
+        fs::remove_file(&file.filename)?;
+
         return Err(anyhow!("hashes do not match"));
     }
+
+    lockfile::add(&version_info, &project_info, file)?;
 
     Ok(())
 }

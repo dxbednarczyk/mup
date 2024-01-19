@@ -33,7 +33,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     match &cli.command {
         Some(Commands::Loader(l)) => loader::fetch(l)?,
-        Some(Commands::Project(m)) => project::action(m)?,
+        Some(Commands::Project(p)) => project::action(p)?,
         Some(Commands::Eula) => eula::sign()?,
         None => (),
     }

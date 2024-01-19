@@ -1,6 +1,7 @@
 use clap::Subcommand;
 
 mod actions;
+mod lockfile;
 
 pub const BASE_URL: &str = "https://api.modrinth.com/v2";
 
@@ -18,7 +19,7 @@ pub enum Project {
 
         /// Project version ID to target
         #[arg(short, long, default_value = "latest")]
-        project_version: Option<String>,
+        version_id: Option<String>,
 
         /// If a project supports multiple loaders, specify which to target
         #[arg(short, long)]
@@ -31,9 +32,9 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
         Project::Add {
             id,
             minecraft_version,
-            project_version,
-            loader,
-        } => actions::add(id, minecraft_version, project_version, loader)?,
+            version_id,
+            loader
+        } => actions::add(id, minecraft_version, version_id, loader)?,
     }
 
     Ok(())
