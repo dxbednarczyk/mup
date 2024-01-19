@@ -23,14 +23,14 @@ pub struct Version {
 
 #[derive(Debug, Deserialize)]
 pub struct ProjectFile {
-    hashes: Hashes,
-    url: String,
+    pub hashes: Hashes,
+    pub url: String,
     pub filename: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct Hashes {
-    sha512: String,
+pub struct Hashes {
+    pub sha512: String,
 }
 
 #[derive(Debug, Deserialize)]

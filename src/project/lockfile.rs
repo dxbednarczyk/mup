@@ -7,6 +7,7 @@ use std::{
 
 use serde::Serialize;
 use toml_edit::Document;
+use anyhow::anyhow;
 
 use super::actions;
 
@@ -16,6 +17,8 @@ const LOCKFILE_PATH: &str = "pap.lock";
 struct LockfileEntry<'a> {
     installed_version: &'a String,
     filename: &'a String,
+    remote_url: &'a String,
+    sha512: &'a String,
 }
 
 pub fn add(
@@ -24,6 +27,7 @@ pub fn add(
     project_file: &actions::ProjectFile,
 ) -> Result<(), anyhow::Error> {
     let mut document = if !Path::new(LOCKFILE_PATH).exists() {
+        File::create(LOCKFILE_PATH)?;
         toml_edit::Document::new()
     } else {
         let mut current_lockfile = File::open(LOCKFILE_PATH)?;
@@ -38,9 +42,15 @@ pub fn add(
     let entry = LockfileEntry {
         installed_version: &version.version_number,
         filename: &project_file.filename,
+        remote_url: &project_file.url,
+        sha512: &project_file.hashes.sha512,
     };
 
     let serialized = Serialize::serialize(&entry, toml_edit::ser::ValueSerializer::new())?;
+
+    if document.get(&project.slug).is_some() {
+        return Err(anyhow!("{} already has an entry in the lockfile", &project.slug));
+    }
 
     document[&project.slug] = toml_edit::value(serialized);
 
