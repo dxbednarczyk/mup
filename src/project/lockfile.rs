@@ -1,67 +1,95 @@
 use std::{
-    fs::{File, self},
+    collections::HashMap,
+    fs::{self, File},
     io::{Read, Write},
     os::unix::fs::MetadataExt,
     path::Path,
 };
 
-use serde::Serialize;
-use toml_edit::Document;
 use anyhow::anyhow;
+use serde::{Deserialize, Serialize};
 
 use super::actions;
 
 const LOCKFILE_PATH: &str = "pap.lock";
 
-#[derive(Serialize)]
-struct LockfileEntry<'a> {
-    installed_version: &'a String,
-    filename: &'a String,
-    remote_url: &'a String,
-    sha512: &'a String,
+pub struct Lockfile {
+    items: HashMap<String, LockfileEntry>,
 }
 
-pub fn add(
-    version: &actions::Version,
-    project: &actions::ProjectInfo,
-    project_file: &actions::ProjectFile,
-) -> Result<(), anyhow::Error> {
-    let mut document = if !Path::new(LOCKFILE_PATH).exists() {
-        File::create(LOCKFILE_PATH)?;
-        toml_edit::Document::new()
-    } else {
-        let mut current_lockfile = File::open(LOCKFILE_PATH)?;
-        let lockfile_size = current_lockfile.metadata()?.size() as usize;
+impl Lockfile {
+    fn init(&mut self) -> Result<&mut Self, anyhow::Error> {
+        self.items = if !Path::new(LOCKFILE_PATH).exists() {
+            File::create(LOCKFILE_PATH)?;
+            HashMap::new()
+        } else {
+            let mut current_lockfile = File::open(LOCKFILE_PATH)?;
+            let lockfile_size = current_lockfile.metadata()?.size() as usize;
 
-        let mut contents = String::with_capacity(lockfile_size);
-        current_lockfile.read_to_string(&mut contents)?;
+            let mut contents = String::with_capacity(lockfile_size);
+            current_lockfile.read_to_string(&mut contents)?;
 
-        contents.parse::<Document>()?
-    };
+            toml::from_str(&contents)?
+        };
 
-    let entry = LockfileEntry {
-        installed_version: &version.version_number,
-        filename: &project_file.filename,
-        remote_url: &project_file.url,
-        sha512: &project_file.hashes.sha512,
-    };
-
-    let serialized = Serialize::serialize(&entry, toml_edit::ser::ValueSerializer::new())?;
-
-    if document.get(&project.slug).is_some() {
-        return Err(anyhow!("{} already has an entry in the lockfile", &project.slug));
+        Ok(self)
     }
 
-    document[&project.slug] = toml_edit::value(serialized);
+    pub fn get(&mut self, project_id: &str) -> Result<&LockfileEntry, anyhow::Error> {
+        self.items
+            .get(project_id)
+            .ok_or(anyhow!("key {project_id} not found"))
+    }
 
-    let mut output = fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(LOCKFILE_PATH)?;
+    pub fn add(
+        &mut self,
+        version: &actions::Version,
+        project: &actions::ProjectInfo,
+        project_file: &actions::ProjectFile,
+    ) -> Result<(), anyhow::Error> {
+        if self.get(&project.slug).is_ok() {
+            return Err(anyhow!(
+                "{} already has an entry in the lockfile",
+                &project.slug
+            ));
+        }
 
-    let stringified = document.to_string();
+        let entry = LockfileEntry {
+            installed_version: version.version_number.clone(),
+            filename: project_file.filename.clone(),
+            remote_url: project_file.url.clone(),
+            sha512: project_file.hashes.sha512.clone(),
+        };
 
-    output.write_all(stringified.as_bytes())?;
+        self.items.insert(project.slug.clone(), entry);
 
-    Ok(())
+        let mut output = fs::OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(LOCKFILE_PATH)?;
+
+        output.write_all(toml::to_string(&self.items)?.as_bytes())?;
+
+        Ok(())
+    }
+}
+
+impl Default for Lockfile {
+    fn default() -> Self {
+        let mut s = Self {
+            items: Default::default(),
+        };
+
+        s.init().unwrap();
+
+        s
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct LockfileEntry {
+    installed_version: String,
+    filename: String,
+    remote_url: String,
+    sha512: String,
 }

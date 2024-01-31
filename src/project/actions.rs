@@ -53,6 +53,12 @@ pub fn add(
     project_version: &Option<String>,
     loader_input: &Option<String>,
 ) -> Result<(), anyhow::Error> {
+    let mut lf = lockfile::Lockfile::default();
+
+    if lf.get(id).is_ok() {
+        return Err(anyhow!("project {id} already exists in the lockfile"));
+    }
+
     let formatted_url = format!("{}/project/{id}", super::BASE_URL);
 
     let project_info: ProjectInfo = ureq::get(&formatted_url)
@@ -127,7 +133,7 @@ pub fn add(
         return Err(anyhow!("hashes do not match"));
     }
 
-    lockfile::add(&version_info, &project_info, file)?;
+    lf.add(&version_info, &project_info, file)?;
 
     Ok(())
 }

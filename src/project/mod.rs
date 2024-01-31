@@ -33,7 +33,7 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
             id,
             minecraft_version,
             version_id,
-            loader
+            loader,
         } => actions::add(id, minecraft_version, version_id, loader)?,
     }
 
