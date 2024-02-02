@@ -69,7 +69,7 @@ impl Lockfile {
 
         let mut output = fs::OpenOptions::new()
             .write(true)
-            .append(true)
+            .truncate(true)
             .open(LOCKFILE_PATH)?;
 
         output.write_all(toml::to_string(&self.items)?.as_bytes())?;

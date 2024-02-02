@@ -7,11 +7,10 @@ use anyhow::anyhow;
 use pap::FAKE_USER_AGENT;
 use serde::Deserialize;
 use sha2::{Digest, Sha512};
-use versions::Versioning;
 
 use super::lockfile::Lockfile;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Version {
     game_versions: Vec<String>,
     loaders: Vec<String>,
@@ -19,16 +18,17 @@ pub struct Version {
     //version_type: String,
     files: Vec<ProjectFile>,
     //dependencies: Vec<Value>,
+    project_id: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ProjectFile {
     pub hashes: Hashes,
     pub url: String,
     pub filename: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Hashes {
     pub sha512: String,
 }
@@ -37,14 +37,10 @@ pub struct Hashes {
 pub struct ProjectInfo {
     pub slug: String,
     server_side: String,
+    id: String,
     loaders: Vec<String>,
     game_versions: Vec<String>,
     versions: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct License {
-    pub name: String,
 }
 
 pub fn add(
@@ -88,9 +84,9 @@ pub fn add(
         ));
     }
 
-    let project = project_version.as_ref().unwrap();
-    if project.as_str() != "latest" && !project_info.versions.contains(project) {
-        return Err(anyhow!("project version {project} does not exist"));
+    let project_version = project_version.as_ref().unwrap();
+    if project_version.as_str() != "latest" && !project_info.versions.contains(project_version) {
+        return Err(anyhow!("project version {project_version} does not exist"));
     }
 
     let loader = loader.unwrap();
@@ -98,7 +94,11 @@ pub fn add(
         return Err(anyhow!("project does not support {loader} loader"));
     }
 
-    let version_info = get_version(&project_info, minecraft_input, project)?;
+    let version_info = if project_version.as_str() == "latest" {
+        get_latest_version(&project_info, minecraft_input, loader)?
+    } else {
+        get_version(&project_info, minecraft_input, project_version)?
+    };
 
     if !version_info.loaders.contains(loader) {
         return Err(anyhow!(
@@ -140,24 +140,26 @@ pub fn add(
 
 fn get_version(
     project: &ProjectInfo,
-    minecraft_version: &String,
-    wanted_version: &String,
+    minecraft_input: &String,
+    version_id: &String,
 ) -> Result<Version, anyhow::Error> {
-    if wanted_version == "latest" {
-        return get_latest_version(project, minecraft_version);
-    }
-
-    let formatted_url = format!("{}/version/{wanted_version}", super::BASE_URL);
+    let formatted_url = format!("{}/version/{version_id}", super::BASE_URL);
 
     let resp: Version = ureq::get(&formatted_url)
         .set("User-Agent", FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
-    if !resp.game_versions.contains(minecraft_version) {
+    if project.id != resp.project_id {
         return Err(anyhow!(
-            "project version {} does not support Minecraft version {minecraft_version}",
-            resp.version_number
+            "version id {version_id} is not a part of project {}",
+            project.slug
+        ));
+    }
+
+    if !resp.game_versions.contains(minecraft_input) {
+        return Err(anyhow!(
+            "version id {version_id} does not support minecraft version {minecraft_input}"
         ));
     }
 
@@ -167,37 +169,27 @@ fn get_version(
 fn get_latest_version(
     project: &ProjectInfo,
     minecraft_version: &String,
+    loader: &String,
 ) -> Result<Version, anyhow::Error> {
-    let parsed = Versioning::new(minecraft_version).unwrap();
+    let formatted_url = format!("{}/project/{}/version", super::BASE_URL, project.slug);
 
-    let mut found_version: Option<Version> = None;
-    for version in project.versions.iter().rev() {
-        let formatted_url = format!("{}/version/{version}", super::BASE_URL);
+    let mut req = ureq::get(&formatted_url)
+        .set("User-Agent", FAKE_USER_AGENT)
+        .query(
+            "game_versions",
+            format!("[\"{}\"]", minecraft_version).as_str(),
+        );
 
-        let resp: Version = ureq::get(&formatted_url)
-            .set("User-Agent", FAKE_USER_AGENT)
-            .call()?
-            .into_json()?;
-
-        if resp.game_versions.contains(minecraft_version) {
-            found_version = Some(resp);
-            break;
-        }
-
-        if resp
-            .game_versions
-            .iter()
-            .all(|v| Versioning::new(v).unwrap() < parsed)
-        {
-            return Err(anyhow!(
-                "failed to find a version compatible with Minecraft version {parsed}"
-            ));
-        }
+    if !loader.is_empty() {
+        req = req.query("loaders", format!("[\"{}\"]", loader).as_str());
     }
 
-    if found_version.is_none() {
-        return Err(anyhow!("could not find a compatible version"));
-    }
+    let resp: Vec<Version> = req.call()?.into_json()?;
 
-    Ok(found_version.unwrap())
+    let version = resp
+        .iter()
+        .find(|p| p.game_versions.contains(minecraft_version))
+        .ok_or(anyhow!("could not find a matching version"))?;
+
+    Ok(version.clone())
 }
