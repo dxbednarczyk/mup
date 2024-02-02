@@ -18,8 +18,12 @@ pub struct Lockfile {
 }
 
 impl Lockfile {
-    fn init(&mut self) -> Result<&mut Self, anyhow::Error> {
-        self.items = if !Path::new(LOCKFILE_PATH).exists() {
+    pub fn new() -> Result<Self, anyhow::Error> {
+        let mut lf = Self {
+            items: Default::default(),
+        };
+
+        lf.items = if !Path::new(LOCKFILE_PATH).exists() {
             File::create(LOCKFILE_PATH)?;
             HashMap::new()
         } else {
@@ -32,7 +36,7 @@ impl Lockfile {
             toml::from_str(&contents)?
         };
 
-        Ok(self)
+        Ok(lf)
     }
 
     pub fn get(&mut self, project_id: &str) -> Result<&LockfileEntry, anyhow::Error> {
@@ -71,18 +75,6 @@ impl Lockfile {
         output.write_all(toml::to_string(&self.items)?.as_bytes())?;
 
         Ok(())
-    }
-}
-
-impl Default for Lockfile {
-    fn default() -> Self {
-        let mut s = Self {
-            items: Default::default(),
-        };
-
-        s.init().unwrap();
-
-        s
     }
 }
 

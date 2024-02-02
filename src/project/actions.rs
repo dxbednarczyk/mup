@@ -9,7 +9,7 @@ use serde::Deserialize;
 use sha2::{Digest, Sha512};
 use versions::Versioning;
 
-use super::lockfile;
+use super::lockfile::Lockfile;
 
 #[derive(Debug, Deserialize)]
 pub struct Version {
@@ -53,7 +53,7 @@ pub fn add(
     project_version: &Option<String>,
     loader_input: &Option<String>,
 ) -> Result<(), anyhow::Error> {
-    let mut lf = lockfile::Lockfile::default();
+    let mut lf = Lockfile::new()?;
 
     if lf.get(id).is_ok() {
         return Err(anyhow!("project {id} already exists in the lockfile"));
