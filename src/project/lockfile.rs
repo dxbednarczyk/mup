@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation)]
+
 use std::{
     collections::HashMap,
     fs::{self, File},
@@ -13,31 +15,37 @@ use super::actions;
 
 const LOCKFILE_PATH: &str = "pap.lock";
 
+#[derive(Default)]
 pub struct Lockfile {
     items: HashMap<String, Entry>,
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct Entry {
+    installed_version: String,
+    filename: String,
+    remote_url: String,
+    sha512: String,
+}
+
 impl Lockfile {
     pub fn new() -> Result<Self, anyhow::Error> {
-        let mut lf = Self {
-            items: HashMap::default(),
-        };
-
-        lf.items = if Path::new(LOCKFILE_PATH).exists() {
+        let items = if Path::new(LOCKFILE_PATH).exists() {
             let mut current_lockfile = File::open(LOCKFILE_PATH)?;
-            let lockfile_size = current_lockfile.metadata()?.size();
 
-            // clippy::cast_possible_truncation
-            let mut contents = String::with_capacity(usize::try_from(lockfile_size)?);
+            let lockfile_size = current_lockfile.metadata()?.size();
+            let mut contents = String::with_capacity(lockfile_size as usize);
+
             current_lockfile.read_to_string(&mut contents)?;
 
             toml::from_str(&contents)?
         } else {
             File::create(LOCKFILE_PATH)?;
-            HashMap::new()
+
+            HashMap::default()
         };
 
-        Ok(lf)
+        Ok(Self { items })
     }
 
     pub fn get(&mut self, project_id: &str) -> Result<&Entry, anyhow::Error> {
@@ -52,15 +60,8 @@ impl Lockfile {
         project: &actions::ProjectInfo,
         project_file: &actions::ProjectFile,
     ) -> Result<(), anyhow::Error> {
-        if self.get(&project.slug).is_ok() {
-            return Err(anyhow!(
-                "{} already has an entry in the lockfile",
-                &project.slug
-            ));
-        }
-
         let entry = Entry {
-            installed_version: version.version_number.clone(),
+            installed_version: version.number.clone(),
             filename: project_file.filename.clone(),
             remote_url: project_file.url.clone(),
             sha512: project_file.hashes.sha512.clone(),
@@ -77,12 +78,4 @@ impl Lockfile {
 
         Ok(())
     }
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct Entry {
-    installed_version: String,
-    filename: String,
-    remote_url: String,
-    sha512: String,
 }

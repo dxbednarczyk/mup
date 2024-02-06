@@ -16,7 +16,7 @@ use super::lockfile::Lockfile;
 pub struct Version {
     game_versions: Vec<String>,
     loaders: Vec<String>,
-    pub version_number: String,
+    pub number: String,
     //version_type: String,
     files: Vec<ProjectFile>,
     //dependencies: Vec<Value>,
@@ -54,7 +54,9 @@ pub fn add(
     let mut lf = Lockfile::new()?;
 
     if lf.get(id).is_ok() {
-        return Err(anyhow!("project {id} already exists in the lockfile"));
+        return Err(anyhow!(
+            "specified project already has an entry in the lockfile"
+        ));
     }
 
     let formatted_url = format!("{}/project/{id}", super::BASE_URL);
@@ -66,17 +68,6 @@ pub fn add(
 
     if project_info.server_side == "unsupported" {
         return Err(anyhow!("project {id} does not support server side"));
-    }
-
-    let mut loader = loader_input.as_ref();
-    if loader.is_none() {
-        if project_info.loaders.len() > 1 {
-            return Err(anyhow!(
-                "project supports more than one loader, please specify which to target"
-            ));
-        }
-
-        loader = Some(project_info.loaders.first().unwrap());
     }
 
     if minecraft_input.as_str() != "latest" && !project_info.game_versions.contains(minecraft_input)
@@ -91,7 +82,18 @@ pub fn add(
         return Err(anyhow!("project version {project_version} does not exist"));
     }
 
-    let loader = loader.unwrap();
+    let loader = if let Some(l) = loader_input.as_ref() {
+        l
+    } else {
+        if project_info.loaders.len() > 1 {
+            return Err(anyhow!(
+                "project supports more than one loader, please specify which to target"
+            ));
+        }
+
+        project_info.loaders.first().unwrap()
+    };
+
     if !project_info.loaders.contains(loader) {
         return Err(anyhow!("project does not support {loader} loader"));
     }
@@ -99,15 +101,8 @@ pub fn add(
     let version_info = if project_version.as_str() == "latest" {
         get_latest_version(&project_info, minecraft_input, loader)?
     } else {
-        get_version(&project_info, minecraft_input, project_version)?
+        get_version(&project_info, minecraft_input, project_version, loader)?
     };
-
-    if !version_info.loaders.contains(loader) {
-        return Err(anyhow!(
-            "project version {} does not support loader {loader}",
-            version_info.version_number
-        ));
-    }
 
     let file = version_info
         .files
@@ -144,6 +139,7 @@ fn get_version(
     project: &ProjectInfo,
     minecraft_input: &String,
     version_id: &String,
+    loader: &String,
 ) -> Result<Version, anyhow::Error> {
     let formatted_url = format!("{}/version/{version_id}", super::BASE_URL);
 
@@ -165,6 +161,12 @@ fn get_version(
         ));
     }
 
+    if !resp.loaders.contains(loader) {
+        return Err(anyhow!(
+            "project version {version_id} does not support loader {loader}",
+        ));
+    }
+
     Ok(resp)
 }
 
@@ -179,11 +181,11 @@ fn get_latest_version(
         .set("User-Agent", FAKE_USER_AGENT)
         .query(
             "game_versions",
-            format!("[\"{minecraft_version}\"]").as_str(),
+            format!(r#"["{minecraft_version}"]"#).as_str(),
         );
 
     if !loader.is_empty() {
-        req = req.query("loaders", format!("[\"{loader}\"]").as_str());
+        req = req.query("loaders", format!(r#"["{loader}"]"#).as_str());
     }
 
     let resp: Vec<Version> = req.call()?.into_json()?;
@@ -192,6 +194,13 @@ fn get_latest_version(
         .iter()
         .find(|p| p.game_versions.contains(minecraft_version))
         .ok_or_else(|| anyhow!("could not find a matching version"))?;
+
+    if !version.loaders.contains(loader) {
+        return Err(anyhow!(
+            "project version {} does not support loader {loader}",
+            version.number
+        ));
+    }
 
     Ok(version.clone())
 }

@@ -66,11 +66,10 @@ fn get_specific_version(
     let specific_version = versions.iter().find(|p| p.version == version);
 
     if specific_version.is_none() {
-        let formatted = format!(
+        return Err(anyhow!(
             "{} version {version} does not exist",
-            path.strip_prefix('/').unwrap(),
-        );
-        return Err(anyhow!(formatted));
+            path.strip_prefix('/').unwrap()
+        ));
     }
 
     Ok(specific_version.unwrap().clone())

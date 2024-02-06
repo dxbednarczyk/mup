@@ -42,11 +42,9 @@ pub fn fetch(
         minecraft = get_latest_version()?;
     }
 
-    let unwrapped = build_input.as_deref().unwrap();
-    let build = if unwrapped == "latest" {
-        get_latest_build(&minecraft)?
-    } else {
-        get_specific_build(&minecraft, unwrapped.parse()?)?
+    let build = match build_input.as_deref().unwrap() {
+        "latest" => get_latest_build(&minecraft)?,
+        b => get_specific_build(&minecraft, b.parse()?)?,
     };
 
     let formatted_url = format!(
@@ -82,12 +80,12 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
         .call()?
         .into_json()?;
 
-    let latest = body.versions.last();
-    if latest.is_none() {
-        return Err(anyhow!("could not get latest minecraft version"));
-    }
+    let latest = body
+        .versions
+        .last()
+        .ok_or_else(|| anyhow!("could not get latest minecraft version"))?;
 
-    Ok(latest.unwrap().clone())
+    Ok(latest.clone())
 }
 
 fn get_latest_build(minecraft_version: &str) -> Result<Build, anyhow::Error> {
@@ -98,13 +96,12 @@ fn get_latest_build(minecraft_version: &str) -> Result<Build, anyhow::Error> {
         .call()?
         .into_json()?;
 
-    let latest = body.builds.last();
+    let latest = body
+        .builds
+        .last()
+        .ok_or_else(|| anyhow!("could not get latest loader version"))?;
 
-    if latest.is_none() {
-        return Err(anyhow!("could not get latest loader version"));
-    }
-
-    Ok(latest.unwrap().clone())
+    Ok(latest.clone())
 }
 
 fn get_specific_build(minecraft_version: &str, build: usize) -> Result<Build, anyhow::Error> {
@@ -115,11 +112,11 @@ fn get_specific_build(minecraft_version: &str, build: usize) -> Result<Build, an
         .call()?
         .into_json()?;
 
-    let latest = body.builds.iter().find(|p| p.build == build);
+    let latest = body
+        .builds
+        .iter()
+        .find(|p| p.build == build)
+        .ok_or_else(|| anyhow!("could not get specific loader version"))?;
 
-    if latest.is_none() {
-        return Err(anyhow!("could not get specific loader version"));
-    }
-
-    Ok(latest.unwrap().clone())
+    Ok(latest.clone())
 }
