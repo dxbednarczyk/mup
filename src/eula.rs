@@ -6,7 +6,7 @@ pub fn sign() -> Result<(), anyhow::Error> {
         .truncate(true)
         .open("eula.txt")?;
 
-    file.write_all("# Signed by pap\neula=true".as_bytes())?;
+    file.write_all(b"# Signed by pap\neula=true")?;
 
     Ok(())
 }

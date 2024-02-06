@@ -18,4 +18,4 @@ install-testing: target/debug/pap
 
 lint:
 	cargo fmt
-	cargo clippy
+	cargo clippy --all -- -D warnings

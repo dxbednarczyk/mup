@@ -14,35 +14,36 @@ use super::actions;
 const LOCKFILE_PATH: &str = "pap.lock";
 
 pub struct Lockfile {
-    items: HashMap<String, LockfileEntry>,
+    items: HashMap<String, Entry>,
 }
 
 impl Lockfile {
     pub fn new() -> Result<Self, anyhow::Error> {
         let mut lf = Self {
-            items: Default::default(),
+            items: HashMap::default(),
         };
 
-        lf.items = if !Path::new(LOCKFILE_PATH).exists() {
-            File::create(LOCKFILE_PATH)?;
-            HashMap::new()
-        } else {
+        lf.items = if Path::new(LOCKFILE_PATH).exists() {
             let mut current_lockfile = File::open(LOCKFILE_PATH)?;
-            let lockfile_size = current_lockfile.metadata()?.size() as usize;
+            let lockfile_size = current_lockfile.metadata()?.size();
 
-            let mut contents = String::with_capacity(lockfile_size);
+            // clippy::cast_possible_truncation
+            let mut contents = String::with_capacity(usize::try_from(lockfile_size)?);
             current_lockfile.read_to_string(&mut contents)?;
 
             toml::from_str(&contents)?
+        } else {
+            File::create(LOCKFILE_PATH)?;
+            HashMap::new()
         };
 
         Ok(lf)
     }
 
-    pub fn get(&mut self, project_id: &str) -> Result<&LockfileEntry, anyhow::Error> {
+    pub fn get(&mut self, project_id: &str) -> Result<&Entry, anyhow::Error> {
         self.items
             .get(project_id)
-            .ok_or(anyhow!("key {project_id} not found"))
+            .ok_or_else(|| anyhow!("key {project_id} not found"))
     }
 
     pub fn add(
@@ -58,7 +59,7 @@ impl Lockfile {
             ));
         }
 
-        let entry = LockfileEntry {
+        let entry = Entry {
             installed_version: version.version_number.clone(),
             filename: project_file.filename.clone(),
             remote_url: project_file.url.clone(),
@@ -79,7 +80,7 @@ impl Lockfile {
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct LockfileEntry {
+pub struct Entry {
     installed_version: String,
     filename: String,
     remote_url: String,

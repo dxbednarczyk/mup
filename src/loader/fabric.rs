@@ -15,7 +15,7 @@ pub fn fetch(
     minecraft_input: &Option<String>,
     loader_input: &Option<String>,
     installer_input: &Option<String>,
-    allow_experimental: &bool,
+    allow_experimental: bool,
 ) -> Result<(), anyhow::Error> {
     let minecraft = minecraft_input.as_deref().unwrap();
     let loader = loader_input.as_deref().unwrap();
@@ -37,7 +37,7 @@ fn get_formatted_url(
     minecraft: &str,
     loader: &str,
     installer: &str,
-    allow_experimental: &bool,
+    allow_experimental: bool,
 ) -> Result<String, anyhow::Error> {
     let formatted_url = format!(
         "{BASE_URL}/loader/{}/{}/{}/server/jar",
@@ -52,7 +52,7 @@ fn get_formatted_url(
 fn get_specific_version(
     path: &str,
     version: &str,
-    allow_experimental: &bool,
+    allow_experimental: bool,
 ) -> Result<Version, anyhow::Error> {
     let versions: Vec<Version> = ureq::get(&format!("{BASE_URL}{path}"))
         .set("User-Agent", pap::FAKE_USER_AGENT)
@@ -78,12 +78,13 @@ fn get_specific_version(
 
 fn get_latest_version(
     versions: &[Version],
-    allow_experimental: &bool,
+    allow_experimental: bool,
 ) -> Result<Version, anyhow::Error> {
-    let mut latest_version = versions.first();
-    if !allow_experimental {
-        latest_version = versions.iter().find(|x| x.stable);
-    }
+    let latest_version = if allow_experimental {
+        versions.first()
+    } else {
+        versions.iter().find(|x| x.stable)
+    };
 
     if latest_version.is_none() {
         return Err(anyhow!("failed to fetch requested minecraft version"));

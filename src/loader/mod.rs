@@ -65,12 +65,12 @@ pub fn fetch(loader: &Loader) -> Result<(), anyhow::Error> {
             minecraft_version,
             loader_version,
             installer_version,
-            allow_experimental,
+            *allow_experimental,
         ),
         Loader::Forge {
             minecraft_version,
             installer_version,
             force_latest,
-        } => forge::fetch(minecraft_version, installer_version, force_latest),
+        } => forge::fetch(minecraft_version, installer_version, *force_latest),
     }
 }

@@ -28,11 +28,11 @@ struct PromosResponse {
 pub fn fetch(
     minecraft_input: &Option<String>,
     installer_input: &Option<String>,
-    force_latest: &bool,
+    force_latest: bool,
 ) -> Result<(), anyhow::Error> {
     let minecraft = minecraft_input.as_deref().unwrap();
 
-    let installer = if *force_latest {
+    let installer = if force_latest {
         "latest"
     } else {
         installer_input.as_deref().unwrap()
@@ -58,10 +58,10 @@ pub fn fetch(
     let promo = promos.get(&formatted_version);
 
     let installer_version = match installer {
-        "latest" => promo.ok_or(anyhow!(
-            "failed to get the latest installer, is this a valid Minecraft version?"
-        ))?,
-        "recommended" => promo.ok_or(anyhow!("failed to find a recommended installer"))?,
+        "latest" => promo.ok_or_else(|| {
+            anyhow!("failed to get the latest installer, is this a valid Minecraft version?")
+        })?,
+        "recommended" => promo.ok_or_else(|| anyhow!("failed to find a recommended installer"))?,
         _ => installer,
     };
 
@@ -71,7 +71,7 @@ pub fn fetch(
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
 
-    let filename = format!("forge-{}-{}.jar", minecraft_version, installer_version);
+    let filename = format!("forge-{minecraft_version}-{installer_version}.jar");
 
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;

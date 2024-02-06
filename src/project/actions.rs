@@ -1,3 +1,5 @@
+#![allow(clippy::case_sensitive_file_extension_comparisons)]
+
 use std::{
     fs::{self, File},
     io,
@@ -74,7 +76,7 @@ pub fn add(
             ));
         }
 
-        loader = Some(project_info.loaders.first().unwrap())
+        loader = Some(project_info.loaders.first().unwrap());
     }
 
     if minecraft_input.as_str() != "latest" && !project_info.game_versions.contains(minecraft_input)
@@ -177,11 +179,11 @@ fn get_latest_version(
         .set("User-Agent", FAKE_USER_AGENT)
         .query(
             "game_versions",
-            format!("[\"{}\"]", minecraft_version).as_str(),
+            format!("[\"{minecraft_version}\"]").as_str(),
         );
 
     if !loader.is_empty() {
-        req = req.query("loaders", format!("[\"{}\"]", loader).as_str());
+        req = req.query("loaders", format!("[\"{loader}\"]").as_str());
     }
 
     let resp: Vec<Version> = req.call()?.into_json()?;
@@ -189,7 +191,7 @@ fn get_latest_version(
     let version = resp
         .iter()
         .find(|p| p.game_versions.contains(minecraft_version))
-        .ok_or(anyhow!("could not find a matching version"))?;
+        .ok_or_else(|| anyhow!("could not find a matching version"))?;
 
     Ok(version.clone())
 }

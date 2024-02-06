@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+
 use clap::{Parser, Subcommand};
 
 mod eula;
