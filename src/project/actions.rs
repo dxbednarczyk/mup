@@ -1,5 +1,7 @@
 #![allow(clippy::case_sensitive_file_extension_comparisons)]
 
+use std::path::PathBuf;
+
 use anyhow::anyhow;
 use pap::{download_with_checksum, FAKE_USER_AGENT};
 use serde::Deserialize;
@@ -79,7 +81,7 @@ pub fn add(
         return Err(anyhow!("project version {version} does not exist"));
     }
 
-    let loader_version = if loader_input.is_none() {
+    let loader = if loader_input.is_none() {
         if project_info.loaders.len() > 1 {
             return Err(anyhow!(
                 "project supports more than one loader, please specify which to target"
@@ -91,14 +93,14 @@ pub fn add(
         loader_input.as_ref().unwrap()
     };
 
-    if !project_info.loaders.contains(loader_version) {
-        return Err(anyhow!("project does not support {loader_version} loader"));
+    if !project_info.loaders.contains(loader) {
+        return Err(anyhow!("project does not support {loader} loader"));
     }
 
     let version_info = if version.as_str() == "latest" {
-        get_latest_version(&project_info, minecraft_version, loader_version)?
+        get_latest_version(&project_info, minecraft_version, loader)?
     } else {
-        get_version(&project_info, minecraft_version, version, loader_version)?
+        get_version(&project_info, minecraft_version, version, loader)?
     };
 
     let file = version_info
@@ -107,9 +109,15 @@ pub fn add(
         .find(|f| f.filename.ends_with(".jar"))
         .unwrap();
 
-    download_with_checksum::<Sha512>(&file.url, &file.filename, &file.hashes.sha512)?;
+    let save_to = match loader.as_str() {
+        "paper" => PathBuf::from(&format!("./plugins/{}", file.filename)),
+        "fabric" | "forge" => PathBuf::from(&format!("./mods/{}", file.filename)),
+        _ => unreachable!(),
+    };
 
-    lf.add(&version_info, &project_info, file)?;
+    download_with_checksum::<Sha512>(&file.url, &save_to, &file.hashes.sha512)?;
+
+    lf.add(&version_info, &project_info, file, save_to)?;
 
     Ok(())
 }

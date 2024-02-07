@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::anyhow;
 use pap::download_with_checksum;
 use serde::Deserialize;
@@ -55,7 +57,7 @@ pub fn fetch(
 
     download_with_checksum::<Sha256>(
         &formatted_url,
-        &filename,
+        &PathBuf::from(filename),
         &build.downloads.application.sha256,
     )?;
 

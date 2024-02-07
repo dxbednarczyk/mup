@@ -1,6 +1,7 @@
 use std::{
     fs::{self, File},
     io::{self, Write},
+    path::PathBuf,
 };
 
 use anyhow::anyhow;
@@ -10,7 +11,7 @@ pub const FAKE_USER_AGENT: &str =
 
 pub fn download_with_checksum<T: sha2::Digest + Write>(
     url: &str,
-    filename: &str,
+    path: &PathBuf,
     wanted_hash: &str,
 ) -> Result<(), anyhow::Error> {
     let resp = ureq::get(url)
@@ -18,7 +19,11 @@ pub fn download_with_checksum<T: sha2::Digest + Write>(
         .call()?
         .into_reader();
 
-    let mut output = File::create(filename)?;
+    if let Some(prefix) = path.parent() {
+        std::fs::create_dir_all(prefix).unwrap();
+    }
+
+    let mut output = File::create(path)?;
 
     let mut hasher = T::new();
 
@@ -33,7 +38,7 @@ pub fn download_with_checksum<T: sha2::Digest + Write>(
         .fold(String::new(), |acc, b| acc + &format!("{b:02x}"));
 
     if hash != wanted_hash {
-        fs::remove_file(filename)?;
+        fs::remove_file(path)?;
 
         return Err(anyhow!("hashes do not match"));
     }

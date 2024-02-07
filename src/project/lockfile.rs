@@ -5,7 +5,7 @@ use std::{
     fs::{self, File},
     io::{Read, Write},
     os::unix::fs::MetadataExt,
-    path::Path,
+    path::PathBuf,
 };
 
 use anyhow::anyhow;
@@ -23,14 +23,14 @@ pub struct Lockfile {
 #[derive(Deserialize, Serialize)]
 pub struct Entry {
     installed_version: String,
-    path: String,
+    path: PathBuf,
     remote_url: String,
     sha512: String,
 }
 
 impl Lockfile {
     pub fn new() -> Result<Self, anyhow::Error> {
-        let items = if Path::new(LOCKFILE_PATH).exists() {
+        let items = if PathBuf::from(LOCKFILE_PATH).exists() {
             let mut current_lockfile = File::open(LOCKFILE_PATH)?;
 
             let lockfile_size = current_lockfile.metadata()?.size();
@@ -59,10 +59,11 @@ impl Lockfile {
         version: &actions::Version,
         project: &actions::ProjectInfo,
         project_file: &actions::ProjectFile,
+        path: PathBuf,
     ) -> Result<(), anyhow::Error> {
         let entry = Entry {
             installed_version: version.number.clone(),
-            path: project_file.filename.clone(),
+            path,
             remote_url: project_file.url.clone(),
             sha512: project_file.hashes.sha512.clone(),
         };
