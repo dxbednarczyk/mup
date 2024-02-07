@@ -1,14 +1,9 @@
 #![allow(clippy::case_sensitive_file_extension_comparisons)]
 
-use std::{
-    fs::{self, File},
-    io,
-};
-
 use anyhow::anyhow;
-use pap::FAKE_USER_AGENT;
+use pap::{download_with_checksum, FAKE_USER_AGENT};
 use serde::Deserialize;
-use sha2::{Digest, Sha512};
+use sha2::Sha512;
 
 use super::lockfile::Lockfile;
 
@@ -16,6 +11,7 @@ use super::lockfile::Lockfile;
 pub struct Version {
     game_versions: Vec<String>,
     loaders: Vec<String>,
+    #[serde(rename = "version_number")]
     pub number: String,
     //version_type: String,
     files: Vec<ProjectFile>,
@@ -47,8 +43,8 @@ pub struct ProjectInfo {
 
 pub fn add(
     id: &String,
-    minecraft_input: &String,
-    project_version: &Option<String>,
+    minecraft_version: &String,
+    version_input: &Option<String>,
     loader_input: &Option<String>,
 ) -> Result<(), anyhow::Error> {
     let mut lf = Lockfile::new()?;
@@ -70,21 +66,20 @@ pub fn add(
         return Err(anyhow!("project {id} does not support server side"));
     }
 
-    if minecraft_input.as_str() != "latest" && !project_info.game_versions.contains(minecraft_input)
+    if minecraft_version.as_str() != "latest"
+        && !project_info.game_versions.contains(minecraft_version)
     {
         return Err(anyhow!(
-            "project does not support Minecraft version {minecraft_input}"
+            "project does not support Minecraft version {minecraft_version}"
         ));
     }
 
-    let project_version = project_version.as_ref().unwrap();
-    if project_version.as_str() != "latest" && !project_info.versions.contains(project_version) {
-        return Err(anyhow!("project version {project_version} does not exist"));
+    let version = version_input.as_ref().unwrap();
+    if version.as_str() != "latest" && !project_info.versions.contains(version) {
+        return Err(anyhow!("project version {version} does not exist"));
     }
 
-    let loader = if let Some(l) = loader_input.as_ref() {
-        l
-    } else {
+    let loader_version = if loader_input.is_none() {
         if project_info.loaders.len() > 1 {
             return Err(anyhow!(
                 "project supports more than one loader, please specify which to target"
@@ -92,16 +87,18 @@ pub fn add(
         }
 
         project_info.loaders.first().unwrap()
+    } else {
+        loader_input.as_ref().unwrap()
     };
 
-    if !project_info.loaders.contains(loader) {
-        return Err(anyhow!("project does not support {loader} loader"));
+    if !project_info.loaders.contains(loader_version) {
+        return Err(anyhow!("project does not support {loader_version} loader"));
     }
 
-    let version_info = if project_version.as_str() == "latest" {
-        get_latest_version(&project_info, minecraft_input, loader)?
+    let version_info = if version.as_str() == "latest" {
+        get_latest_version(&project_info, minecraft_version, loader_version)?
     } else {
-        get_version(&project_info, minecraft_input, project_version, loader)?
+        get_version(&project_info, minecraft_version, version, loader_version)?
     };
 
     let file = version_info
@@ -110,25 +107,7 @@ pub fn add(
         .find(|f| f.filename.ends_with(".jar"))
         .unwrap();
 
-    let resp = ureq::get(&file.url)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
-        .call()?
-        .into_reader();
-
-    let mut output = File::create(&file.filename)?;
-
-    let mut hasher = Sha512::new();
-
-    let mut tee = tee::tee(resp, &mut output);
-    io::copy(&mut tee, &mut hasher)?;
-
-    let hash = hasher.finalize();
-
-    if format!("{hash:x}") != file.hashes.sha512 {
-        fs::remove_file(&file.filename)?;
-
-        return Err(anyhow!("hashes do not match"));
-    }
+    download_with_checksum::<Sha512>(&file.url, &file.filename, &file.hashes.sha512)?;
 
     lf.add(&version_info, &project_info, file)?;
 
@@ -181,11 +160,11 @@ fn get_latest_version(
         .set("User-Agent", FAKE_USER_AGENT)
         .query(
             "game_versions",
-            format!(r#"["{minecraft_version}"]"#).as_str(),
+            format!("[\"{minecraft_version}\"]").as_str(),
         );
 
     if !loader.is_empty() {
-        req = req.query("loaders", format!(r#"["{loader}"]"#).as_str());
+        req = req.query("loaders", format!("[\"{loader}\"]").as_str());
     }
 
     let resp: Vec<Version> = req.call()?.into_json()?;

@@ -1,8 +1,7 @@
-use std::{fs::File, io};
-
 use anyhow::anyhow;
+use pap::download_with_checksum;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 
 const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
 
@@ -52,24 +51,13 @@ pub fn fetch(
         build.build, build.build,
     );
 
-    let resp = ureq::get(&formatted_url)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
-        .call()?
-        .into_reader();
-
     let filename = format!("paper-{minecraft}-{}.jar", build.build);
-    let mut file = File::create(filename)?;
 
-    let mut hasher = Sha256::new();
-
-    let mut tee = tee::tee(resp, &mut file);
-    io::copy(&mut tee, &mut hasher)?;
-
-    let hash = hasher.finalize();
-
-    if format!("{hash:x}") != build.downloads.application.sha256 {
-        return Err(anyhow!("hashes do not match"));
-    }
+    download_with_checksum::<Sha256>(
+        &formatted_url,
+        &filename,
+        &build.downloads.application.sha256,
+    )?;
 
     Ok(())
 }
