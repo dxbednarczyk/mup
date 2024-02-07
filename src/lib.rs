@@ -27,12 +27,10 @@ pub fn download_with_checksum<T: sha2::Digest + Write>(
 
     let hash_bytes = hasher.finalize();
 
-    let mut hash = String::new();
-    for i in hash_bytes.as_slice() {
-        let formatted = format!("{i:02x}");
-
-        hash.push_str(&formatted);
-    }
+    let hash = hash_bytes
+        .as_slice()
+        .iter()
+        .fold(String::new(), |acc, b| acc + &format!("{b:02x}"));
 
     if hash != wanted_hash {
         fs::remove_file(filename)?;
