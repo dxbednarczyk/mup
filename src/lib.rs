@@ -29,13 +29,7 @@ pub fn download_with_checksum<T: sha2::Digest + Write>(
 
     let mut hash = String::new();
     for i in hash_bytes.as_slice() {
-        let mut formatted = format!("{i:x}");
-
-        // sometimes LowerHex returns i.e. 7 instead of 07 when formatting
-        // we need to include that 0 in the context of the hash
-        if formatted.len() == 1 {
-            formatted.insert(0, '0');
-        }
+        let formatted = format!("{i:02x}");
 
         hash.push_str(&formatted);
     }
