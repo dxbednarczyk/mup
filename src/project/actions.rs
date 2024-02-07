@@ -114,6 +114,18 @@ pub fn add(
     Ok(())
 }
 
+pub fn remove(slug: &str, keep_jarfile: bool) -> Result<(), anyhow::Error> {
+    let mut lf = Lockfile::new()?;
+
+    if lf.get(slug).is_err() {
+        return Err(anyhow!("project {slug} does not exist in the lockfile"));
+    }
+
+    lf.remove(slug, keep_jarfile)?;
+
+    Ok(())
+}
+
 fn get_version(
     project: &ProjectInfo,
     minecraft_input: &String,

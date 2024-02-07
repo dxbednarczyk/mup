@@ -25,6 +25,16 @@ pub enum Project {
         #[arg(short, long)]
         loader: Option<String>,
     },
+    /// Remove a mod or plugin
+    Remove {
+        /// The slug of the project to remove
+        #[arg(short, long, required = true)]
+        slug: String,
+
+        /// Keep the downloaded jarfile
+        #[arg(long, action)]
+        keep_jarfile: bool,
+    },
 }
 
 pub fn action(project: &Project) -> Result<(), anyhow::Error> {
@@ -35,6 +45,7 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
             version_id,
             loader,
         } => actions::add(id, minecraft_version, version_id, loader)?,
+        Project::Remove { slug, keep_jarfile } => actions::remove(slug, *keep_jarfile)?,
     }
 
     Ok(())

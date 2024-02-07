@@ -23,7 +23,7 @@ pub struct Lockfile {
 #[derive(Deserialize, Serialize)]
 pub struct Entry {
     installed_version: String,
-    filename: String,
+    path: String,
     remote_url: String,
     sha512: String,
 }
@@ -62,13 +62,34 @@ impl Lockfile {
     ) -> Result<(), anyhow::Error> {
         let entry = Entry {
             installed_version: version.number.clone(),
-            filename: project_file.filename.clone(),
+            path: project_file.filename.clone(),
             remote_url: project_file.url.clone(),
             sha512: project_file.hashes.sha512.clone(),
         };
 
         self.items.insert(project.slug.clone(), entry);
 
+        self.write_out()?;
+
+        Ok(())
+    }
+
+    pub fn remove(&mut self, slug: &str, keep_jarfile: bool) -> Result<(), anyhow::Error> {
+        let entry = self
+            .items
+            .remove(slug)
+            .ok_or_else(|| anyhow!("failed to remove {slug} from the lockfile"))?;
+
+        if !keep_jarfile {
+            fs::remove_file(entry.path)?;
+        }
+
+        self.write_out()?;
+
+        Ok(())
+    }
+
+    fn write_out(&mut self) -> Result<(), anyhow::Error> {
         let mut output = fs::OpenOptions::new()
             .write(true)
             .truncate(true)
