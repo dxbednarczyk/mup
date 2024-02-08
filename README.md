@@ -4,8 +4,11 @@ This is a spiritual successor to [pap](https://github.com/talwat/pap), rewritten
 
 ## Goals
 - [x] Easily set up a new Minecraft server from scratch, including mod and plugin support
-- [ ] Produce easily reproducible, portable server configuration
-- [ ] Be an all-in-one tool that still keeps it simple, stupid!
+- [x] Produce easily reproducible, portable server configuration
+    - [x] Lockfile with detailed information on installed mods
+    - [ ] Support for installing / updating lockfile dependencies
+
+✅ Be an all-in-one tool that keeps it simple, stupid!
 
 ## Non-Goals
 ❌ Support client-side modification
