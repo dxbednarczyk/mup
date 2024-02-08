@@ -1,7 +1,9 @@
+use anyhow::anyhow;
 use clap::Subcommand;
 
-mod actions;
-mod lockfile;
+use crate::server::lockfile::Lockfile;
+
+pub mod actions;
 
 pub const BASE_URL: &str = "https://api.modrinth.com/v2";
 
@@ -13,17 +15,9 @@ pub enum Project {
         #[arg(short, long, required = true)]
         id: String,
 
-        /// Minecraft version to target
-        #[arg(short, long, required = true)]
-        minecraft_version: String,
-
         /// Project version ID to target
         #[arg(short, long, default_value = "latest")]
         version_id: Option<String>,
-
-        /// If a project supports multiple loaders, specify which to target
-        #[arg(short, long)]
-        loader: Option<String>,
     },
     /// Remove a mod or plugin
     Remove {
@@ -38,14 +32,17 @@ pub enum Project {
 }
 
 pub fn action(project: &Project) -> Result<(), anyhow::Error> {
+    let mut lf = Lockfile::init()?;
+
+    if !lf.is_initialized() {
+        return Err(anyhow!(
+            "you must initialize a server before modifying projects"
+        ));
+    }
+
     match project {
-        Project::Add {
-            id,
-            minecraft_version,
-            version_id,
-            loader,
-        } => actions::add(id, minecraft_version, version_id, loader)?,
-        Project::Remove { slug, keep_jarfile } => actions::remove(slug, *keep_jarfile)?,
+        Project::Add { id, version_id } => actions::add(&mut lf, id, version_id)?,
+        Project::Remove { slug, keep_jarfile } => actions::remove(&mut lf, slug, *keep_jarfile)?,
     }
 
     Ok(())

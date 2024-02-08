@@ -1,10 +1,11 @@
 use clap::Subcommand;
+use strum_macros::VariantNames;
 
 mod fabric;
 mod forge;
 mod paper;
 
-#[derive(Debug, Subcommand)]
+#[derive(VariantNames, Debug, Subcommand)]
 pub enum Loader {
     /// Performance-optimized Spigot server
     Paper {

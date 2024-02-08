@@ -1,7 +1,6 @@
 #![allow(clippy::cast_possible_truncation)]
 
 use std::{
-    collections::HashMap,
     fs::{self, File},
     io::{Read, Write},
     os::unix::fs::MetadataExt,
@@ -10,18 +9,24 @@ use std::{
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+use strum::VariantNames;
+use versions::Versioning;
 
-use super::actions;
+use crate::loader::Loader;
+use crate::project::actions;
 
 const LOCKFILE_PATH: &str = "pap.lock";
 
-#[derive(Default)]
+#[derive(Deserialize, Default, Serialize)]
 pub struct Lockfile {
-    items: HashMap<String, Entry>,
+    pub minecraft_version: String,
+    pub loader: String,
+    project: Vec<Entry>,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Entry {
+    slug: String,
     installed_version: String,
     path: PathBuf,
     remote_url: String,
@@ -29,8 +34,8 @@ pub struct Entry {
 }
 
 impl Lockfile {
-    pub fn new() -> Result<Self, anyhow::Error> {
-        let items = if PathBuf::from(LOCKFILE_PATH).exists() {
+    pub fn init() -> Result<Self, anyhow::Error> {
+        let lf = if PathBuf::from(LOCKFILE_PATH).exists() {
             let mut current_lockfile = File::open(LOCKFILE_PATH)?;
 
             let lockfile_size = current_lockfile.metadata()?.size();
@@ -42,15 +47,34 @@ impl Lockfile {
         } else {
             File::create(LOCKFILE_PATH)?;
 
-            HashMap::default()
+            Self {
+                minecraft_version: String::from("undefined"),
+                loader: String::from("undefined"),
+                project: vec![],
+            }
         };
 
-        Ok(Self { items })
+        Ok(lf)
+    }
+
+    pub fn with_params(minecraft_version: &str, loader: &str) -> Result<Self, anyhow::Error> {
+        File::create(LOCKFILE_PATH)?;
+
+        let mut lf = Self {
+            minecraft_version: String::from(minecraft_version),
+            loader: String::from(loader),
+            project: vec![],
+        };
+
+        lf.write_out()?;
+
+        Ok(lf)
     }
 
     pub fn get(&mut self, project_id: &str) -> Result<&Entry, anyhow::Error> {
-        self.items
-            .get(project_id)
+        self.project
+            .iter()
+            .find(|p| p.slug == project_id)
             .ok_or_else(|| anyhow!("key {project_id} not found"))
     }
 
@@ -62,13 +86,14 @@ impl Lockfile {
         path: PathBuf,
     ) -> Result<(), anyhow::Error> {
         let entry = Entry {
+            slug: project.slug.clone(),
             installed_version: version.number.clone(),
             path,
             remote_url: project_file.url.clone(),
             sha512: project_file.hashes.sha512.clone(),
         };
 
-        self.items.insert(project.slug.clone(), entry);
+        self.project.push(entry);
 
         self.write_out()?;
 
@@ -77,13 +102,16 @@ impl Lockfile {
 
     pub fn remove(&mut self, slug: &str, keep_jarfile: bool) -> Result<(), anyhow::Error> {
         let entry = self
-            .items
-            .remove(slug)
-            .ok_or_else(|| anyhow!("failed to remove {slug} from the lockfile"))?;
+            .project
+            .iter()
+            .position(|p| p.slug == slug)
+            .ok_or_else(|| anyhow!("{slug} does not exist in the lockfile"))?;
 
         if !keep_jarfile {
-            fs::remove_file(entry.path)?;
+            fs::remove_file(&self.project[entry].path)?;
         }
+
+        self.project.remove(entry);
 
         self.write_out()?;
 
@@ -96,8 +124,20 @@ impl Lockfile {
             .truncate(true)
             .open(LOCKFILE_PATH)?;
 
-        output.write_all(toml::to_string(&self.items)?.as_bytes())?;
+        output.write_all(toml::to_string(&self)?.as_bytes())?;
 
         Ok(())
+    }
+
+    pub fn is_initialized(&mut self) -> bool {
+        let mv = Versioning::new(&self.minecraft_version).unwrap();
+
+        let mut chars = self.loader.chars();
+        let capitalized_loader = match chars.next() {
+            None => return false,
+            Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
+        };
+
+        return !mv.is_complex() && Loader::VARIANTS.contains(&capitalized_loader.as_ref());
     }
 }

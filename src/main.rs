@@ -2,9 +2,9 @@
 
 use clap::{Parser, Subcommand};
 
-mod eula;
 mod loader;
 mod project;
+mod server;
 
 #[derive(Debug, Parser)]
 #[command(author = "Damian Bednarczyk <damian@bednarczyk.xyz>")]
@@ -18,7 +18,7 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Download a server or modloader jarfile
+    /// Download a modloader jarfile
     #[command(subcommand)]
     Loader(loader::Loader),
 
@@ -26,8 +26,9 @@ enum Commands {
     #[command(subcommand)]
     Project(project::Project),
 
-    /// Sign the eula in the current directory
-    Eula,
+    /// Initialize and configure a server
+    #[command(subcommand)]
+    Server(server::Server),
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -36,7 +37,7 @@ fn main() -> Result<(), anyhow::Error> {
     match &cli.command {
         Some(Commands::Loader(l)) => loader::fetch(l)?,
         Some(Commands::Project(p)) => project::action(p)?,
-        Some(Commands::Eula) => eula::sign()?,
+        Some(Commands::Server(s)) => server::action(s)?,
         None => (),
     }
 
