@@ -26,21 +26,13 @@ struct PromosResponse {
 }
 
 pub fn fetch(
-    minecraft_input: &Option<String>,
-    installer_input: &Option<String>,
+    minecraft_version: &str,
+    installer_version: &str,
     force_latest: bool,
 ) -> Result<(), anyhow::Error> {
-    let minecraft = minecraft_input.as_deref().unwrap();
-
-    let installer = if force_latest {
-        "latest"
-    } else {
-        installer_input.as_deref().unwrap()
-    };
-
     let promos = get_promos()?;
 
-    let minecraft_version = if minecraft == "latest" {
+    let minecraft = if minecraft_version == "latest" {
         let mut versions: Vec<Versioning> = promos
             .keys()
             .filter_map(|p| p.split('-').next())
@@ -51,27 +43,35 @@ pub fn fetch(
 
         versions.last().unwrap().clone()
     } else {
-        Versioning::new(minecraft).unwrap()
+        Versioning::new(minecraft_version).unwrap()
     };
 
-    let formatted_version = format!("{minecraft_version}-{installer}");
+    let formatted_version = format!(
+        "{minecraft_version}-{}",
+        if force_latest {
+            "latest"
+        } else {
+            installer_version
+        }
+    );
+    
     let promo = promos.get(&formatted_version);
 
-    let installer_version = match installer {
+    let installer = match installer_version {
         "latest" => promo.ok_or_else(|| {
             anyhow!("failed to get the latest installer, is this a valid Minecraft version?")
         })?,
         "recommended" => promo.ok_or_else(|| anyhow!("failed to find a recommended installer"))?,
-        _ => installer,
+        _ => installer_version,
     };
 
-    let formatted_url = get_formatted_url(&minecraft_version, installer_version)?;
+    let formatted_url = get_formatted_url(&minecraft, installer)?;
 
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
 
-    let filename = format!("forge-{minecraft_version}-{installer_version}.jar");
+    let filename = format!("forge-{minecraft_version}-{installer}.jar");
 
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;

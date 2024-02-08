@@ -11,25 +11,25 @@ pub enum Loader {
     Paper {
         /// Minecraft version to target
         #[arg(short, long, default_value = "latest")]
-        minecraft_version: Option<String>,
+        minecraft_version: String,
 
         /// Build to target
         #[arg(short, long, default_value = "latest")]
-        build_version: Option<String>,
+        build_version: String,
     },
     /// Lightweight, flexible mod loader
     Fabric {
         /// Minecraft version to target
         #[arg(short, long, default_value = "latest")]
-        minecraft_version: Option<String>,
+        minecraft_version: String,
 
         /// Loader version to target
         #[arg(short, long, default_value = "latest")]
-        loader_version: Option<String>,
+        loader_version: String,
 
         /// Installer version to target
         #[arg(short, long, default_value = "latest")]
-        installer_version: Option<String>,
+        installer_version: String,
 
         /// Allow nightly builds and Minecraft snapshots to be targeted
         #[arg(short, long, action)]
@@ -39,11 +39,11 @@ pub enum Loader {
     Forge {
         /// Minecraft version to target
         #[arg(short, long, default_value = "latest")]
-        minecraft_version: Option<String>,
+        minecraft_version: String,
 
         /// Installer version to target
         #[arg(short, long, default_value = "recommended")]
-        installer_version: Option<String>,
+        installer_version: String,
 
         /// Use the latest installer, regardless of if there is a recommended version
         #[arg(short, long, action)]

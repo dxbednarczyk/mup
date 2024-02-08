@@ -33,17 +33,14 @@ struct Application {
     sha256: String,
 }
 
-pub fn fetch(
-    minecraft_input: &Option<String>,
-    build_input: &Option<String>,
-) -> Result<(), anyhow::Error> {
-    let mut minecraft = minecraft_input.as_deref().unwrap().to_string();
+pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<(), anyhow::Error> {
+    let minecraft = if minecraft_version == "latest" {
+        get_latest_version()?
+    } else {
+        minecraft_version.to_string()
+    };
 
-    if minecraft == "latest" {
-        minecraft = get_latest_version()?;
-    }
-
-    let build = match build_input.as_deref().unwrap() {
+    let build = match loader_version {
         "latest" => get_latest_build(&minecraft)?,
         b => get_specific_build(&minecraft, b.parse()?)?,
     };

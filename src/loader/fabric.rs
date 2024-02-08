@@ -12,16 +12,17 @@ struct Version {
 }
 
 pub fn fetch(
-    minecraft_input: &Option<String>,
-    loader_input: &Option<String>,
-    installer_input: &Option<String>,
+    minecraft_version: &str,
+    loader_version: &str,
+    installer_version: &str,
     allow_experimental: bool,
 ) -> Result<(), anyhow::Error> {
-    let minecraft = minecraft_input.as_deref().unwrap();
-    let loader = loader_input.as_deref().unwrap();
-    let installer = installer_input.as_deref().unwrap();
-
-    let formatted_url = get_formatted_url(minecraft, loader, installer, allow_experimental)?;
+    let formatted_url = format!(
+        "{BASE_URL}/loader/{}/{}/{}/server/jar",
+        get_specific_version("/game", minecraft_version, allow_experimental)?.version,
+        get_specific_version("/loader", loader_version, allow_experimental)?.version,
+        get_specific_version("/installer", installer_version, allow_experimental)?.version
+    );
 
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
@@ -31,22 +32,6 @@ pub fn fetch(
     io::copy(&mut resp.into_reader(), &mut file)?;
 
     Ok(())
-}
-
-fn get_formatted_url(
-    minecraft: &str,
-    loader: &str,
-    installer: &str,
-    allow_experimental: bool,
-) -> Result<String, anyhow::Error> {
-    let formatted_url = format!(
-        "{BASE_URL}/loader/{}/{}/{}/server/jar",
-        get_specific_version("/game", minecraft, allow_experimental)?.version,
-        get_specific_version("/loader", loader, allow_experimental)?.version,
-        get_specific_version("/installer", installer, allow_experimental)?.version
-    );
-
-    Ok(formatted_url)
 }
 
 fn get_specific_version(
