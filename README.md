@@ -2,6 +2,8 @@
 
 This is a spiritual successor to [pap](https://github.com/talwat/pap), rewritten in Rust.
 
+The current MSRV is the latest nightly toolchain.
+
 ## Goals
 - [x] Easily set up a new Minecraft server from scratch, including mod and plugin support
 - [x] Produce easily reproducible, portable server configuration

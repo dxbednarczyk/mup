@@ -1,4 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![feature(lazy_cell)]
 
 use clap::{Parser, Subcommand};
 

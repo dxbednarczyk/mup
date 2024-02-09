@@ -1,11 +1,10 @@
 use clap::Subcommand;
-use strum_macros::VariantNames;
 
 mod fabric;
 mod forge;
 mod paper;
 
-#[derive(VariantNames, Debug, Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum Loader {
     /// Performance-optimized Spigot server
     Paper {
@@ -49,6 +48,10 @@ pub enum Loader {
         #[arg(short, long, action)]
         force_latest: bool,
     },
+}
+
+impl Loader {
+    pub const NAMES: [&'static str; 3] = ["paper", "fabric", "forge"];
 }
 
 pub fn fetch(loader: &Loader) -> Result<(), anyhow::Error> {

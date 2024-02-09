@@ -11,11 +11,11 @@ pub const BASE_URL: &str = "https://api.modrinth.com/v2";
 pub enum Project {
     /// Add a mod or plugin
     Add {
-        /// The project ID or slug to target
+        /// The project's ID or slug
         #[arg(short, long, required = true)]
         id: String,
 
-        /// Project version ID to target
+        /// The version ID to target
         #[arg(short, long, default_value = "latest")]
         version_id: Option<String>,
     },

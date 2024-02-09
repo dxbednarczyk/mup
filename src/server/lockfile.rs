@@ -9,7 +9,6 @@ use std::{
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-use strum::VariantNames;
 use versions::Versioning;
 
 use crate::loader::Loader;
@@ -132,12 +131,6 @@ impl Lockfile {
     pub fn is_initialized(&mut self) -> bool {
         let mv = Versioning::new(&self.minecraft_version).unwrap();
 
-        let mut chars = self.loader.chars();
-        let capitalized_loader = match chars.next() {
-            None => return false,
-            Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
-        };
-
-        return !mv.is_complex() && Loader::VARIANTS.contains(&capitalized_loader.as_ref());
+        return !mv.is_complex() && Loader::NAMES.contains(&self.loader.as_str());
     }
 }

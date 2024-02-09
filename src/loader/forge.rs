@@ -1,7 +1,6 @@
-use std::{collections::HashMap, fs::File, io};
+use std::{collections::HashMap, fs::File, io, sync::LazyLock};
 
 use anyhow::anyhow;
-use once_cell::sync::Lazy;
 use serde::Deserialize;
 use versions::Versioning;
 
@@ -10,15 +9,15 @@ const PROMOS_URL: &str =
 const BASE_MAVEN_URL: &str = "https://maven.minecraftforge.net/net/minecraftforge/forge";
 
 // Forge does not provide installer jarfiles before Minecraft version 1.5.2
-static MINECRAFT_CUTOFF: Lazy<Versioning> = Lazy::new(|| Versioning::new("1.5.2").unwrap());
+static MINECRAFT_CUTOFF: LazyLock<Versioning> = LazyLock::new(|| Versioning::new("1.5.2").unwrap());
 
 // The cutoff in 1.9 builds after which versions are formatted as 1.X-{installer}-1.X.0
-static INSTALLER_CUTOFF_TRIPLE: Lazy<Versioning> =
-    Lazy::new(|| Versioning::new("12.16.1.1938").unwrap());
+static INSTALLER_CUTOFF_TRIPLE: LazyLock<Versioning> =
+    LazyLock::new(|| Versioning::new("12.16.1.1938").unwrap());
 
 // The cutoff in 1.9 builds before which versions are formatted as 1.9-{installer}
-static INSTALLER_CUTOFF_DOUBLE: Lazy<Versioning> =
-    Lazy::new(|| Versioning::new("12.16.0.1885").unwrap());
+static INSTALLER_CUTOFF_DOUBLE: LazyLock<Versioning> =
+    LazyLock::new(|| Versioning::new("12.16.0.1885").unwrap());
 
 #[derive(Debug, Deserialize)]
 struct PromosResponse {
