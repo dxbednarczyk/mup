@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use super::Loader;
 use anyhow::anyhow;
 use pap::download_with_checksum;
 use serde::Deserialize;
@@ -33,7 +34,7 @@ struct Application {
     sha256: String,
 }
 
-pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<(), anyhow::Error> {
+pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<Loader, anyhow::Error> {
     let minecraft = if minecraft_version == "latest" {
         get_latest_version()?
     } else {
@@ -58,7 +59,10 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<(), anyhow
         &build.downloads.application.sha256,
     )?;
 
-    Ok(())
+    Ok(Loader::Paper {
+        minecraft_version: minecraft,
+        build: build.build.to_string(),
+    })
 }
 
 fn get_latest_version() -> Result<String, anyhow::Error> {

@@ -67,11 +67,11 @@ pub fn add(
 
     if !project_info
         .game_versions
-        .contains(&lockfile.minecraft_version)
+        .contains(lockfile.loader.minecraft_version())
     {
         return Err(anyhow!(
             "project does not support Minecraft version {}",
-            lockfile.minecraft_version,
+            lockfile.loader.minecraft_version(),
         ));
     }
 
@@ -80,18 +80,22 @@ pub fn add(
         return Err(anyhow!("project version {version} does not exist"));
     }
 
-    if !project_info.loaders.contains(&lockfile.loader) {
+    if !project_info.loaders.contains(&lockfile.loader.to_string()) {
         return Err(anyhow!("project does not support {}", lockfile.loader));
     }
 
     let version_info = if version.as_str() == "latest" {
-        get_latest_version(&project_info, &lockfile.minecraft_version, &lockfile.loader)?
+        get_latest_version(
+            &project_info,
+            lockfile.loader.minecraft_version(),
+            &lockfile.loader.to_string(),
+        )?
     } else {
         get_version(
             &project_info,
             version,
-            &lockfile.minecraft_version,
-            &lockfile.loader,
+            lockfile.loader.minecraft_version(),
+            &lockfile.loader.to_string(),
         )?
     };
 
@@ -101,7 +105,7 @@ pub fn add(
         .find(|f| f.filename.ends_with(".jar"))
         .unwrap();
 
-    let save_to = match lockfile.loader.as_str() {
+    let save_to = match lockfile.loader.to_string().as_str() {
         "paper" => PathBuf::from(&format!("./plugins/{}", file.filename)),
         "fabric" | "forge" => PathBuf::from(&format!("./mods/{}", file.filename)),
         _ => unreachable!(),

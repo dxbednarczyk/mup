@@ -3,6 +3,8 @@ use std::{fs::File, io};
 use anyhow::anyhow;
 use serde::Deserialize;
 
+use super::Loader;
+
 const BASE_URL: &str = "https://meta.fabricmc.net/v2/versions";
 
 #[derive(Clone, Debug, Deserialize)]
@@ -16,13 +18,12 @@ pub fn fetch(
     loader_version: &str,
     installer_version: &str,
     allow_experimental: bool,
-) -> Result<(), anyhow::Error> {
-    let formatted_url = format!(
-        "{BASE_URL}/loader/{}/{}/{}/server/jar",
-        get_specific_version("/game", minecraft_version, allow_experimental)?.version,
-        get_specific_version("/loader", loader_version, allow_experimental)?.version,
-        get_specific_version("/installer", installer_version, allow_experimental)?.version
-    );
+) -> Result<Loader, anyhow::Error> {
+    let mc = get_specific_version("/game", minecraft_version, allow_experimental)?.version;
+    let l = get_specific_version("/loader", loader_version, allow_experimental)?.version;
+    let i = get_specific_version("/installer", installer_version, allow_experimental)?.version;
+
+    let formatted_url = format!("{BASE_URL}/loader/{mc}/{l}/{i}/server/jar",);
 
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
@@ -31,7 +32,12 @@ pub fn fetch(
     let mut file = File::create("fabric.jar")?;
     io::copy(&mut resp.into_reader(), &mut file)?;
 
-    Ok(())
+    Ok(Loader::Fabric {
+        minecraft_version: mc,
+        loader_version: l,
+        installer_version: i,
+        allow_experimental,
+    })
 }
 
 fn get_specific_version(

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fs::File, io, sync::LazyLock};
 
+use super::Loader;
 use anyhow::anyhow;
 use serde::Deserialize;
 use versions::Versioning;
@@ -28,7 +29,7 @@ pub fn fetch(
     minecraft_version: &str,
     installer_version: &str,
     force_latest: bool,
-) -> Result<(), anyhow::Error> {
+) -> Result<Loader, anyhow::Error> {
     let resp: PromosResponse = ureq::get(PROMOS_URL)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
@@ -83,7 +84,11 @@ pub fn fetch(
 
     eprintln!("This is an installer, not a server loader! Please run it and install the server before proceeding.");
 
-    Ok(())
+    Ok(Loader::Forge {
+        minecraft_version: minecraft.to_string(),
+        installer_version: installer.to_string(),
+        force_latest,
+    })
 }
 
 fn get_version_tag(minecraft: &Versioning, installer: &str) -> Result<String, anyhow::Error> {

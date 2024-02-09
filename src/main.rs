@@ -36,7 +36,10 @@ fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Loader(l)) => loader::fetch(l)?,
+        Some(Commands::Loader(l)) => {
+            loader::fetch(l)?;
+            return Ok(());
+        }
         Some(Commands::Project(p)) => project::action(p)?,
         Some(Commands::Server(s)) => server::action(s)?,
         None => (),
