@@ -20,6 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: nightly
+          components: clippy 
+          
       - name: "Run unit tests"
         run: |
           cargo test
