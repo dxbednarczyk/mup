@@ -52,7 +52,7 @@ pub fn fetch(
         installer_version
     };
 
-    let formatted_version = format!("{minecraft_version}-{installer_version}",);
+    let formatted_version = format!("{minecraft}-{installer_version}");
 
     let promo = promos.get(&formatted_version);
 
@@ -70,7 +70,7 @@ pub fn fetch(
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
 
-    let filename = format!("forge-{minecraft_version}-{installer}.jar");
+    let filename = format!("forge-{minecraft}-{installer}.jar");
 
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;
