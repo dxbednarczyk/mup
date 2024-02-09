@@ -46,15 +46,14 @@ pub fn fetch(
         Versioning::new(minecraft_version).unwrap()
     };
 
-    let formatted_version = format!(
-        "{minecraft_version}-{}",
-        if force_latest {
-            "latest"
-        } else {
-            installer_version
-        }
-    );
-    
+    let installer_version = if force_latest {
+        "latest"
+    } else {
+        installer_version
+    };
+
+    let formatted_version = format!("{minecraft_version}-{installer_version}",);
+
     let promo = promos.get(&formatted_version);
 
     let installer = match installer_version {

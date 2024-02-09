@@ -20,28 +20,23 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: "Build pap"
-        run: |
-          make build
-          make install-testing PREFIX=./
-
       - name: "Run unit tests"
         run: |
           cargo test
 
       - name: "Test Paper downloading"
         run: |
-          ./bin/pap loader paper
-          ./bin/pap loader paper -m 1.20.4 -b 379
+          cargo run -- loader paper
+          cargo run -- loader paper -m 1.20.4 -b 379
 
       - name: "Test Fabric downloading"
         run: |
-          ./bin/pap loader fabric
-          ./bin/pap loader fabric -l 0.15.3 -i 1.0.0 -m 1.20.4
+          cargo run -- loader fabric
+          cargo run -- loader fabric -l 0.15.3 -i 1.0.0 -m 1.20.4
            
       - name: "Test Forge downloading"
         run: |
-          ./bin/pap loader forge --force-latest
-          ./bin/pap loader forge -m 1.7.10_pre4 --force-latest
-          ./bin/pap loader forge -m 1.9
-          ./bin/pap loader forge -m 1.19.3 -i 44.1.0
+          cargo run -- loader forge --force-latest
+          cargo run -- loader forge -m 1.7.10_pre4 --force-latest
+          cargo run -- loader forge -m 1.9
+          cargo run -- loader forge -m 1.19.3 -i 44.1.0
