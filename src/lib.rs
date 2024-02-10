@@ -14,6 +14,7 @@ pub fn download_with_checksum<T: sha2::Digest + Write>(
     path: &PathBuf,
     wanted_hash: &str,
 ) -> Result<(), anyhow::Error> {
+    println!("Downloading jarfile from {url}");
     let resp = ureq::get(url)
         .set("User-Agent", FAKE_USER_AGENT)
         .call()?

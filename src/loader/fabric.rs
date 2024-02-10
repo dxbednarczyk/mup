@@ -25,6 +25,7 @@ pub fn fetch(
 
     let formatted_url = format!("{BASE_URL}/loader/{mc}/{l}/{i}/server/jar",);
 
+    println!("Downlaoding jarfile");
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
@@ -45,6 +46,7 @@ fn get_specific_version(
     version: &str,
     allow_experimental: bool,
 ) -> Result<Version, anyhow::Error> {
+    println!("Fetching information for {} version {version}", path.strip_prefix('/').unwrap());
     let versions: Vec<Version> = ureq::get(&format!("{BASE_URL}{path}"))
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?

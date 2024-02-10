@@ -30,6 +30,7 @@ pub fn fetch(
     installer_version: &str,
     force_latest: bool,
 ) -> Result<Loader, anyhow::Error> {
+    println!("fetching promos");
     let resp: PromosResponse = ureq::get(PROMOS_URL)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
@@ -73,6 +74,7 @@ pub fn fetch(
 
     let formatted_url = format!("{BASE_MAVEN_URL}/{version_tag}/forge-{version_tag}-installer.jar");
 
+    println!("Downloading installer jarfile");
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
