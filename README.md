@@ -9,9 +9,9 @@ The current MSRV is the latest nightly toolchain.
 Instead of browsing for server modpacks, or even downloading mods and server jarfiles them one-by-one,
 `pap` can set up a server from scratch in just a few commands. Here's a video example:
 
-![pap video example](./assets/pap.mp4)
-
-**WARNING: This will NOT copy over server configuration. This feature may or may not be added at a later date.**
+<video width="640" height="360" controls>
+  <source src="./assets/pap.mp4" type="video/mp4">
+</video>
 
 ## Goals
 - [x] Easily set up a new Minecraft server from scratch, including mod and plugin support
