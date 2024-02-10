@@ -7,23 +7,9 @@ The current MSRV is the latest nightly toolchain.
 ## Why `pap`?
 
 Instead of browsing for server modpacks, or even downloading mods and server jarfiles them one-by-one,
-`pap` can set up a server from scratch in just a few commands:
+`pap` can set up a server from scratch in just a few commands. Here's a video example:
 
-```shell
-# Set up the latest Fabric server for Minecraft 1.20.4
-$ pap server init -m 1.20.4 -l fabric
-# Add the mods / plugins you want
-$ pap project add fabric-api
-# You can also specify specific version IDs
-$ pap project add chunky --version-id=t8SbUchF
-$ java -jar fabric.jar
-```
-
-Any edits you make using `pap` are saved in `pap.lock`, which lives in the
-root of your server directory.
-
-If you have a server with a valid `pap.lock` and want to host it on a different machine, just copy that file over
-and run `pap server install`.
+![pap video example](./assets/pap.mp4)
 
 **WARNING: This will NOT copy over server configuration. This feature may or may not be added at a later date.**
 

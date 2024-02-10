@@ -25,7 +25,7 @@ pub fn fetch(
 
     let formatted_url = format!("{BASE_URL}/loader/{mc}/{l}/{i}/server/jar",);
 
-    println!("Downlaoding jarfile");
+    println!("Downloading jarfile");
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
