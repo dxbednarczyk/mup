@@ -46,7 +46,10 @@ fn get_specific_version(
     version: &str,
     allow_experimental: bool,
 ) -> Result<Version, anyhow::Error> {
-    println!("Fetching information for {} version {version}", path.strip_prefix('/').unwrap());
+    println!(
+        "Fetching information for {} version {version}",
+        path.strip_prefix('/').unwrap()
+    );
     let versions: Vec<Version> = ureq::get(&format!("{BASE_URL}{path}"))
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?

@@ -107,7 +107,12 @@ pub fn fetch(
 
     download_with_checksum::<Sha512>(&project_file.url, &save_to, &project_file.hashes.sha512)?;
 
-    Ok((version_info.clone(), project_info, project_file.clone(), save_to))
+    Ok((
+        version_info.clone(),
+        project_info,
+        project_file.clone(),
+        save_to,
+    ))
 }
 
 pub fn add(

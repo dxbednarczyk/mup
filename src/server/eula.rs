@@ -1,7 +1,10 @@
-use std::{fs::{self, File}, io::Write};
+use std::{
+    fs::{self, File},
+    io::Write,
+};
 
 pub fn sign() -> Result<(), anyhow::Error> {
-    let mut file = if !fs::metadata("eula.txt").is_ok() {
+    let mut file = if fs::metadata("eula.txt").is_err() {
         File::create("eula.txt")?
     } else {
         fs::OpenOptions::new()
