@@ -19,13 +19,13 @@ const LOCKFILE_PATH: &str = "pap.lock";
 #[derive(Deserialize, Default, Serialize)]
 pub struct Lockfile {
     pub loader: loader::Loader,
-    project: Vec<Entry>,
+    pub project: Vec<Entry>,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct Entry {
-    slug: String,
-    installed_version: String,
+    pub slug: String,
+    pub installed_version: String,
     path: PathBuf,
     remote_url: String,
     sha512: String,
@@ -90,7 +90,7 @@ impl Lockfile {
         Ok(lf)
     }
 
-    pub fn get(&mut self, project_id: &str) -> Result<&Entry, anyhow::Error> {
+    pub fn get(&self, project_id: &str) -> Result<&Entry, anyhow::Error> {
         self.project
             .iter()
             .find(|p| p.slug == project_id)
@@ -106,7 +106,7 @@ impl Lockfile {
     ) -> Result<(), anyhow::Error> {
         let entry = Entry {
             slug: project.slug.clone(),
-            installed_version: version.number.clone(),
+            installed_version: version.id.clone(),
             path,
             remote_url: project_file.url.clone(),
             sha512: project_file.hashes.sha512.clone(),

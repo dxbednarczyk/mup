@@ -1,6 +1,2 @@
 /target
 .vscode
-
-*.jar
-build/
-pap.lock

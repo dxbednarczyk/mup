@@ -6,6 +6,8 @@ pub mod lockfile;
 
 use lockfile::Lockfile;
 
+use crate::{loader, project};
+
 #[derive(Debug, Subcommand)]
 pub enum Server {
     /// Initialize a server in the current directory
@@ -21,6 +23,9 @@ pub enum Server {
 
     /// Sign the eula.txt
     Sign,
+
+    /// Install all mods from the current lockfile
+    Install,
 }
 
 pub fn action(server: &Server) -> Result<(), anyhow::Error> {
@@ -30,6 +35,7 @@ pub fn action(server: &Server) -> Result<(), anyhow::Error> {
             loader,
         } => init(minecraft_version, loader),
         Server::Sign => eula::sign(),
+        Server::Install => install(),
     }
 }
 
@@ -40,6 +46,25 @@ fn init(minecraft_version: &str, loader: &str) -> Result<(), anyhow::Error> {
             "lockfile was initialized with invalid configuration"
         ));
     }
+
+    eula::sign()?;
+
+    Ok(())
+}
+
+fn install() -> Result<(), anyhow::Error> {
+    let mut lf = Lockfile::init()?;
+    if !lf.is_initialized() {
+        return Err(anyhow!("failed to read lockfile from disk"));
+    }
+
+    _ = loader::fetch(&lf.loader)?;
+
+    for entry in &lf.project {
+        _ = project::actions::fetch(&lf, &entry.slug, &Some(entry.installed_version.clone()))?;
+    }
+
+    eula::sign()?;
 
     Ok(())
 }

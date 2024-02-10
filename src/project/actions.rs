@@ -13,8 +13,7 @@ use crate::server::lockfile::Lockfile;
 pub struct Version {
     game_versions: Vec<String>,
     loaders: Vec<String>,
-    #[serde(rename = "version_number")]
-    pub number: String,
+    pub id: String,
     //version_type: String,
     files: Vec<ProjectFile>,
     //dependencies: Vec<Value>,
@@ -43,17 +42,11 @@ pub struct ProjectInfo {
     versions: Vec<String>,
 }
 
-pub fn add(
-    lockfile: &mut Lockfile,
+pub fn fetch(
+    lockfile: &Lockfile,
     id: &String,
     version_input: &Option<String>,
-) -> Result<(), anyhow::Error> {
-    if lockfile.get(id).is_ok() {
-        return Err(anyhow!(
-            "specified project already has an entry in the lockfile"
-        ));
-    }
-
+) -> Result<(Version, ProjectInfo, ProjectFile, PathBuf), anyhow::Error> {
     let formatted_url = format!("{}/project/{id}", super::BASE_URL);
 
     let project_info: ProjectInfo = ureq::get(&formatted_url)
@@ -99,23 +92,37 @@ pub fn add(
         )?
     };
 
-    let file = version_info
+    let project_file: &ProjectFile = version_info
         .files
         .iter()
         .find(|f| f.filename.ends_with(".jar"))
         .unwrap();
 
     let save_to = match lockfile.loader.to_string().as_str() {
-        "paper" => PathBuf::from(&format!("./plugins/{}", file.filename)),
-        "fabric" | "forge" => PathBuf::from(&format!("./mods/{}", file.filename)),
+        "paper" => PathBuf::from(&format!("./plugins/{}", project_file.filename)),
+        "fabric" | "forge" => PathBuf::from(&format!("./mods/{}", project_file.filename)),
         _ => unreachable!(),
     };
 
-    download_with_checksum::<Sha512>(&file.url, &save_to, &file.hashes.sha512)?;
+    download_with_checksum::<Sha512>(&project_file.url, &save_to, &project_file.hashes.sha512)?;
 
-    lockfile.add(&version_info, &project_info, file, save_to)?;
+    Ok((version_info.clone(), project_info, project_file.clone(), save_to))
+}
 
-    Ok(())
+pub fn add(
+    lockfile: &mut Lockfile,
+    id: &String,
+    version_input: &Option<String>,
+) -> Result<(), anyhow::Error> {
+    if lockfile.get(id).is_ok() {
+        return Err(anyhow!(
+            "specified project already has an entry in the lockfile"
+        ));
+    }
+
+    let (version_info, project_info, file, save_to) = fetch(lockfile, id, version_input)?;
+
+    lockfile.add(&version_info, &project_info, &file, save_to)
 }
 
 pub fn remove(
@@ -194,8 +201,8 @@ fn get_latest_version(
 
     if !version.loaders.contains(loader) {
         return Err(anyhow!(
-            "project version {} does not support loader {loader}",
-            version.number
+            "project version ID {} does not support loader {loader}",
+            version.id
         ));
     }
 
