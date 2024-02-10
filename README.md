@@ -1,6 +1,6 @@
 # pap-ng
 
-This is a spiritual successor to [pap](https://github.com/talwat/pap), rewritten in Rust.
+This is a spiritual successor to the original, now abandoned (?) [pap](https://github.com/talwat/pap), rewritten in Rust.
 
 The current MSRV is the latest nightly toolchain.
 
