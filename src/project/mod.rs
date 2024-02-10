@@ -12,7 +12,6 @@ pub enum Project {
     /// Add a mod or plugin
     Add {
         /// The project's ID or slug
-        #[arg(short, long, required = true)]
         id: String,
 
         /// The version ID to target
