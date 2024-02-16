@@ -47,6 +47,8 @@ fn init(minecraft_version: &str, loader: &str) -> Result<(), anyhow::Error> {
         ));
     }
 
+    loader::fetch(&lf.loader)?;
+
     eula::sign()?;
 
     Ok(())
@@ -61,7 +63,7 @@ fn install() -> Result<(), anyhow::Error> {
     _ = loader::fetch(&lf.loader)?;
 
     for entry in &lf.project {
-        _ = project::actions::fetch(&lf, &entry.slug, &Some(entry.installed_version.clone()))?;
+        _ = project::actions::fetch(&lf, &entry.slug, Some(entry.installed_version.clone()))?;
     }
 
     eula::sign()?;

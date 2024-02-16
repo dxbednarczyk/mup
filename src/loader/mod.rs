@@ -82,15 +82,15 @@ impl Loader {
         match loader {
             "paper" => Self::Paper {
                 minecraft_version,
-                build: String::new(),
+                build: String::from("latest"),
             },
             "fabric" => Self::Fabric {
                 minecraft_version,
-                loader_version: String::new(),
+                loader_version: String::from("latest"),
             },
             "forge" => Self::Forge {
                 minecraft_version,
-                installer_version: String::new(),
+                installer_version: String::from("latest"),
             },
             _ => unimplemented!(),
         }

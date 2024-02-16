@@ -16,8 +16,14 @@ pub struct Version {
     pub id: String,
     //version_type: String,
     files: Vec<ProjectFile>,
-    //dependencies: Vec<Value>,
+    dependencies: Vec<Dependency>,
     project_id: String,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Dependency {
+    pub project_id: String,
+    pub dependency_type: String,
 }
 
 #[derive(Clone, Deserialize)]
@@ -44,8 +50,8 @@ pub struct ProjectInfo {
 
 pub fn fetch(
     lockfile: &Lockfile,
-    id: &String,
-    version_input: &Option<String>,
+    id: &str,
+    version_input: Option<String>,
 ) -> Result<(Version, ProjectInfo, ProjectFile, PathBuf), anyhow::Error> {
     let formatted_url = format!("{}/project/{id}", super::BASE_URL);
 
@@ -67,8 +73,8 @@ pub fn fetch(
         ));
     }
 
-    let version = version_input.as_ref().unwrap();
-    if version.as_str() != "latest" && !project_info.versions.contains(version) {
+    let version = version_input.unwrap();
+    if version.as_str() != "latest" && !project_info.versions.contains(&version) {
         return Err(anyhow!("project version {version} does not exist"));
     }
 
@@ -85,7 +91,7 @@ pub fn fetch(
     } else {
         get_version(
             &project_info,
-            version,
+            &version,
             minecraft_version,
             &lockfile.loader.to_string(),
         )?
@@ -115,8 +121,10 @@ pub fn fetch(
 
 pub fn add(
     lockfile: &mut Lockfile,
-    id: &String,
-    version_input: &Option<String>,
+    id: &str,
+    version_input: Option<&String>,
+    optional_deps: bool,
+    no_deps: bool,
 ) -> Result<(), anyhow::Error> {
     if lockfile.get(id).is_ok() {
         return Err(anyhow!(
@@ -124,9 +132,29 @@ pub fn add(
         ));
     }
 
-    let (version_info, project_info, file, save_to) = fetch(lockfile, id, version_input)?;
+    let (version_info, project_info, file, save_to) = fetch(lockfile, id, version_input.cloned())?;
 
-    lockfile.add(&version_info, &project_info, &file, save_to)
+    lockfile.add(&version_info, &project_info, &file, save_to)?;
+
+    if no_deps {
+        return Ok(());
+    }
+
+    for dep in version_info.dependencies {
+        if dep.dependency_type.as_str() == "optional" && !optional_deps {
+            continue;
+        }
+
+        add(
+            lockfile,
+            &dep.project_id,
+            Some(&String::from("latest")),
+            false,
+            true,
+        )?;
+    }
+
+    Ok(())
 }
 
 pub fn remove(
