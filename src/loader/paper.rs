@@ -8,31 +8,31 @@ use sha2::Sha256;
 
 const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Deserialize)]
 struct BaseResponse {
     versions: Versions,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Versions(Vec<String>);
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Builds {
     builds: Vec<Build>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Default, Deserialize)]
 struct Build {
     build: usize,
     downloads: Downloads,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Default, Deserialize)]
 struct Downloads {
     application: Application,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Default, Deserialize)]
 struct Application {
     sha256: String,
 }

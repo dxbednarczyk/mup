@@ -7,7 +7,7 @@ use super::Loader;
 
 const BASE_URL: &str = "https://meta.fabricmc.net/v2/versions";
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 struct Version {
     version: String,
 }

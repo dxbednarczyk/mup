@@ -9,7 +9,7 @@ use sha2::Sha512;
 
 use crate::server::lockfile::Lockfile;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Version {
     game_versions: Vec<String>,
     loaders: Vec<String>,
@@ -20,19 +20,19 @@ pub struct Version {
     project_id: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct ProjectFile {
     pub hashes: Hashes,
     pub url: String,
     pub filename: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Hashes {
     pub sha512: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct ProjectInfo {
     pub slug: String,
     server_side: String,

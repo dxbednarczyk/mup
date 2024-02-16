@@ -20,7 +20,7 @@ static INSTALLER_CUTOFF_TRIPLE: LazyLock<Versioning> =
 static INSTALLER_CUTOFF_DOUBLE: LazyLock<Versioning> =
     LazyLock::new(|| Versioning::new("12.16.0.1885").unwrap());
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct PromosResponse {
     promos: HashMap<String, String>,
 }
@@ -49,12 +49,11 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<Loader,
 
     let promo = promos.get(&format!("{minecraft}-{installer_version}"));
 
-    let installer = match installer_version {
-        "latest" => promo.ok_or_else(|| {
-            anyhow!("failed to get the latest installer, is this a valid Minecraft version?")
-        })?,
-        "recommended" => promo.ok_or_else(|| anyhow!("failed to find a recommended installer"))?,
-        _ => installer_version,
+
+    let installer = if installer_version == "latest" {
+       promo.ok_or_else(|| anyhow!("invalid or unsupported minecraft version"))?
+    } else {
+        installer_version
     };
 
     let version_tag = get_version_tag(&minecraft, installer)?;
