@@ -4,10 +4,17 @@ use super::Loader;
 use anyhow::anyhow;
 use pap::download_with_checksum;
 use serde::Deserialize;
-use serde_json::Value;
 use sha2::Sha256;
 
 const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
+
+#[derive(Clone, Debug, Deserialize)]
+struct BaseResponse {
+    versions: Versions,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct Versions(Vec<String>);
 
 #[derive(Clone, Debug, Deserialize)]
 struct Builds {
@@ -32,7 +39,7 @@ struct Application {
 
 pub fn fetch(minecraft_version: &str, build: &str) -> Result<Loader, anyhow::Error> {
     let minecraft = if minecraft_version == "latest" {
-        get_latest_version()?
+        get_latest_version()?.replace('"', "")
     } else {
         minecraft_version.to_string()
     };
@@ -60,14 +67,14 @@ pub fn fetch(minecraft_version: &str, build: &str) -> Result<Loader, anyhow::Err
 
 fn get_latest_version() -> Result<String, anyhow::Error> {
     println!("Fetching latest Minecraft version");
-    let body: Value = ureq::get(BASE_URL)
+    let body: BaseResponse = ureq::get(BASE_URL)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
-    let latest = body["versions"]
-        .as_array()
-        .unwrap()
+    let latest = body
+        .versions
+        .0
         .last()
         .ok_or_else(|| anyhow!("could not get latest minecraft version"))?
         .to_string();
