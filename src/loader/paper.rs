@@ -37,7 +37,7 @@ pub fn fetch(minecraft_version: &str, build: &str) -> Result<Loader, anyhow::Err
         minecraft_version.to_string()
     };
 
-    let build = get_build(minecraft_version, build)?;
+    let build = get_build(&minecraft, build)?;
 
     let formatted_url = format!(
         "{BASE_URL}/versions/{minecraft}/builds/{}/downloads/paper-{minecraft}-{}.jar",
