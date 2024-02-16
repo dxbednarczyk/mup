@@ -27,6 +27,7 @@ struct PromosResponse {
 
 pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<Loader, anyhow::Error> {
     println!("fetching promos");
+
     let promos = ureq::get(PROMOS_URL)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
@@ -49,9 +50,8 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<Loader,
 
     let promo = promos.get(&format!("{minecraft}-{installer_version}"));
 
-
     let installer = if installer_version == "latest" {
-       promo.ok_or_else(|| anyhow!("invalid or unsupported minecraft version"))?
+        promo.ok_or_else(|| anyhow!("invalid or unsupported minecraft version"))?
     } else {
         installer_version
     };

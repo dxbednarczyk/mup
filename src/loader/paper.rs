@@ -9,11 +9,6 @@ use sha2::Sha256;
 const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
 
 #[derive(Deserialize)]
-struct BaseResponse {
-    versions: Versions,
-}
-
-#[derive(Deserialize)]
 struct Versions(Vec<String>);
 
 #[derive(Deserialize)]
@@ -67,13 +62,12 @@ pub fn fetch(minecraft_version: &str, build: &str) -> Result<Loader, anyhow::Err
 
 fn get_latest_version() -> Result<String, anyhow::Error> {
     println!("Fetching latest Minecraft version");
-    let body: BaseResponse = ureq::get(BASE_URL)
+    let body: Versions = ureq::get(BASE_URL)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
     let latest = body
-        .versions
         .0
         .last()
         .ok_or_else(|| anyhow!("could not get latest minecraft version"))?
@@ -95,11 +89,13 @@ fn get_build(minecraft_version: &str, build: &str) -> Result<Build, anyhow::Erro
         return Ok(body.builds.first().unwrap().clone());
     }
 
-    let latest = body
+    let build_id: usize = build.parse()?;
+
+    let latest_build = body
         .builds
         .iter()
-        .find(|p| p.build == build.parse::<usize>().unwrap())
+        .find(|p| p.build == build_id)
         .ok_or_else(|| anyhow!("could not get specific loader version"))?;
 
-    Ok(latest.clone())
+    Ok(latest_build.clone())
 }

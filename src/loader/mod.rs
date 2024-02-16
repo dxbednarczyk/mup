@@ -92,7 +92,7 @@ impl Loader {
                 minecraft_version,
                 installer_version: String::new(),
             },
-            _ => unreachable!(),
+            _ => unimplemented!(),
         }
     }
 }
