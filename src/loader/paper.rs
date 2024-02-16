@@ -9,7 +9,9 @@ use sha2::Sha256;
 const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
 
 #[derive(Deserialize)]
-struct Versions(Vec<String>);
+struct Versions {
+    versions: Vec<String>
+}
 
 #[derive(Deserialize)]
 struct Builds {
@@ -68,7 +70,7 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
         .into_json()?;
 
     let latest = body
-        .0
+        .versions
         .last()
         .ok_or_else(|| anyhow!("could not get latest minecraft version"))?
         .to_string();
