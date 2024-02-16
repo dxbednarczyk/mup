@@ -59,24 +59,15 @@ impl Lockfile {
             return Err(anyhow!("{loader} is not supported as a modloader"));
         }
 
-        let l = match loader {
-            "fabric" => loader::fetch(&Loader::Fabric {
-                minecraft_version: minecraft_version.to_string(),
-                loader_version: String::from("latest"),
-                installer_version: String::from("latest"),
-                allow_experimental: false,
-            })?,
-            "forge" => loader::fetch(&Loader::Forge {
-                minecraft_version: minecraft_version.to_string(),
-                installer_version: loader.to_string(),
-                force_latest: false,
-            })?,
-            "paper" => loader::fetch(&Loader::Paper {
-                minecraft_version: minecraft_version.to_string(),
-                build: loader.to_string(),
-            })?,
-            _ => unreachable!(),
-        };
+        let mv = Versioning::new(minecraft_version).unwrap();
+        if mv.is_complex() {
+            return Err(anyhow!(
+                "minecraft version {} is invalid",
+                minecraft_version
+            ));
+        }
+
+        let l = Loader::with_params(loader, minecraft_version.to_string());
 
         File::create(LOCKFILE_PATH)?;
 
@@ -137,6 +128,12 @@ impl Lockfile {
         Ok(())
     }
 
+    pub fn is_initialized(&mut self) -> bool {
+        let mv = Versioning::new(self.loader.minecraft_version()).unwrap();
+
+        return !mv.is_complex() && Loader::NAMES.contains(&self.loader.to_string().as_str());
+    }
+
     fn write_out(&mut self) -> Result<(), anyhow::Error> {
         let mut output = fs::OpenOptions::new()
             .write(true)
@@ -147,11 +144,5 @@ impl Lockfile {
         output.write_all(toml::to_string(&self)?.as_bytes())?;
 
         Ok(())
-    }
-
-    pub fn is_initialized(&mut self) -> bool {
-        let mv = Versioning::new(self.loader.minecraft_version()).unwrap();
-
-        return !mv.is_complex() && Loader::NAMES.contains(&self.loader.to_string().as_str());
     }
 }

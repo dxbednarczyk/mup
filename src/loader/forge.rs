@@ -25,18 +25,13 @@ struct PromosResponse {
     promos: HashMap<String, String>,
 }
 
-pub fn fetch(
-    minecraft_version: &str,
-    installer_version: &str,
-    force_latest: bool,
-) -> Result<Loader, anyhow::Error> {
+pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<Loader, anyhow::Error> {
     println!("fetching promos");
-    let resp: PromosResponse = ureq::get(PROMOS_URL)
+    let promos = ureq::get(PROMOS_URL)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
-        .into_json()?;
-
-    let promos = resp.promos;
+        .into_json::<PromosResponse>()?
+        .promos;
 
     let minecraft = if minecraft_version == "latest" {
         let mut versions: Vec<Versioning> = promos
@@ -52,15 +47,7 @@ pub fn fetch(
         Versioning::new(minecraft_version).unwrap()
     };
 
-    let installer_version = if force_latest {
-        "latest"
-    } else {
-        installer_version
-    };
-
-    let formatted_version = format!("{minecraft}-{installer_version}");
-
-    let promo = promos.get(&formatted_version);
+    let promo = promos.get(&format!("{minecraft}-{installer_version}"));
 
     let installer = match installer_version {
         "latest" => promo.ok_or_else(|| {
@@ -89,7 +76,6 @@ pub fn fetch(
     Ok(Loader::Forge {
         minecraft_version: minecraft.to_string(),
         installer_version: installer.to_string(),
-        force_latest,
     })
 }
 

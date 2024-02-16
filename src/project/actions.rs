@@ -59,13 +59,11 @@ pub fn fetch(
         return Err(anyhow!("project {id} does not support server side"));
     }
 
-    if !project_info
-        .game_versions
-        .contains(lockfile.loader.minecraft_version())
-    {
+    let minecraft_version = lockfile.loader.minecraft_version();
+
+    if !project_info.game_versions.contains(minecraft_version) {
         return Err(anyhow!(
-            "project does not support Minecraft version {}",
-            lockfile.loader.minecraft_version(),
+            "project does not support Minecraft version {minecraft_version}",
         ));
     }
 
@@ -81,14 +79,14 @@ pub fn fetch(
     let version_info = if version.as_str() == "latest" {
         get_latest_version(
             &project_info,
-            lockfile.loader.minecraft_version(),
+            minecraft_version,
             &lockfile.loader.to_string(),
         )?
     } else {
         get_version(
             &project_info,
             version,
-            lockfile.loader.minecraft_version(),
+            minecraft_version,
             &lockfile.loader.to_string(),
         )?
     };

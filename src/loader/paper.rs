@@ -4,14 +4,10 @@ use super::Loader;
 use anyhow::anyhow;
 use pap::download_with_checksum;
 use serde::Deserialize;
+use serde_json::Value;
 use sha2::Sha256;
 
 const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
-
-#[derive(Clone, Debug, Deserialize)]
-struct Versions {
-    versions: Vec<String>,
-}
 
 #[derive(Clone, Debug, Deserialize)]
 struct Builds {
@@ -34,17 +30,14 @@ struct Application {
     sha256: String,
 }
 
-pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<Loader, anyhow::Error> {
+pub fn fetch(minecraft_version: &str, build: &str) -> Result<Loader, anyhow::Error> {
     let minecraft = if minecraft_version == "latest" {
         get_latest_version()?
     } else {
         minecraft_version.to_string()
     };
 
-    let build = match loader_version {
-        "latest" => get_latest_build(&minecraft)?,
-        b => get_specific_build(&minecraft, b.parse()?)?,
-    };
+    let build = get_build(minecraft_version, build)?;
 
     let formatted_url = format!(
         "{BASE_URL}/versions/{minecraft}/builds/{}/downloads/paper-{minecraft}-{}.jar",
@@ -67,37 +60,22 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<Loader, an
 
 fn get_latest_version() -> Result<String, anyhow::Error> {
     println!("Fetching latest Minecraft version");
-    let body: Versions = ureq::get(BASE_URL)
+    let body: Value = ureq::get(BASE_URL)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
-    let latest = body
-        .versions
+    let latest = body["versions"]
+        .as_array()
+        .unwrap()
         .last()
-        .ok_or_else(|| anyhow!("could not get latest minecraft version"))?;
+        .ok_or_else(|| anyhow!("could not get latest minecraft version"))?
+        .to_string();
 
-    Ok(latest.clone())
+    Ok(latest)
 }
 
-fn get_latest_build(minecraft_version: &str) -> Result<Build, anyhow::Error> {
-    let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
-
-    println!("Fetching latest Paper build for {minecraft_version}");
-    let body: Builds = ureq::get(formatted_url.as_str())
-        .set("User-Agent", pap::FAKE_USER_AGENT)
-        .call()?
-        .into_json()?;
-
-    let latest = body
-        .builds
-        .last()
-        .ok_or_else(|| anyhow!("could not get latest loader version"))?;
-
-    Ok(latest.clone())
-}
-
-fn get_specific_build(minecraft_version: &str, build: usize) -> Result<Build, anyhow::Error> {
+fn get_build(minecraft_version: &str, build: &str) -> Result<Build, anyhow::Error> {
     let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
 
     println!("Fetching build {build} for {minecraft_version}");
@@ -106,10 +84,14 @@ fn get_specific_build(minecraft_version: &str, build: usize) -> Result<Build, an
         .call()?
         .into_json()?;
 
+    if build == "latest" {
+        return Ok(body.builds.first().unwrap().clone());
+    }
+
     let latest = body
         .builds
         .iter()
-        .find(|p| p.build == build)
+        .find(|p| p.build == build.parse::<usize>().unwrap())
         .ok_or_else(|| anyhow!("could not get specific loader version"))?;
 
     Ok(latest.clone())

@@ -26,14 +26,6 @@ pub enum Loader {
         /// Loader version to target
         #[arg(short, long, default_value = "latest")]
         loader_version: String,
-
-        /// Installer version to target
-        #[arg(short, long, default_value = "latest")]
-        installer_version: String,
-
-        /// Allow nightly builds and Minecraft snapshots to be targeted
-        #[arg(short, long, action)]
-        allow_experimental: bool,
     },
     /// The most popular Minecraft mod loader
     Forge {
@@ -42,12 +34,8 @@ pub enum Loader {
         minecraft_version: String,
 
         /// Installer version to target
-        #[arg(short, long, default_value = "recommended")]
+        #[arg(short, long, default_value = "latest")]
         installer_version: String,
-
-        /// Use the latest installer, regardless of if there is a recommended version
-        #[arg(short, long, action)]
-        force_latest: bool,
     },
     #[clap(skip)]
     None,
@@ -89,6 +77,26 @@ impl std::fmt::Display for Loader {
     }
 }
 
+impl Loader {
+    pub fn with_params(loader: &str, minecraft_version: String) -> Self {
+        match loader {
+            "paper" => Self::Paper {
+                minecraft_version,
+                build: String::new(),
+            },
+            "fabric" => Self::Fabric {
+                minecraft_version,
+                loader_version: String::new(),
+            },
+            "forge" => Self::Forge {
+                minecraft_version,
+                installer_version: String::new(),
+            },
+            _ => unreachable!(),
+        }
+    }
+}
+
 pub fn fetch(loader: &Loader) -> Result<Loader, anyhow::Error> {
     match loader {
         Loader::Paper {
@@ -98,19 +106,11 @@ pub fn fetch(loader: &Loader) -> Result<Loader, anyhow::Error> {
         Loader::Fabric {
             minecraft_version,
             loader_version,
-            installer_version,
-            allow_experimental,
-        } => fabric::fetch(
-            minecraft_version,
-            loader_version,
-            installer_version,
-            *allow_experimental,
-        ),
+        } => fabric::fetch(minecraft_version, loader_version),
         Loader::Forge {
             minecraft_version,
             installer_version,
-            force_latest,
-        } => forge::fetch(minecraft_version, installer_version, *force_latest),
+        } => forge::fetch(minecraft_version, installer_version),
         Loader::None => Ok(Loader::None),
     }
 }
