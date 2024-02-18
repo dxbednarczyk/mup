@@ -1,11 +1,13 @@
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, VariantNames};
 
 mod fabric;
 mod forge;
 mod paper;
 
-#[derive(Debug, Deserialize, Serialize, Subcommand)]
+#[derive(Clone, Debug, Default, Display, Subcommand, VariantNames)]
+#[strum(serialize_all = "snake_case")]
 pub enum Loader {
     /// Performance-optimized Spigot server
     Paper {
@@ -38,79 +40,73 @@ pub enum Loader {
         installer_version: String,
     },
     #[clap(skip)]
+    #[default]
     None,
 }
 
-impl Loader {
-    pub const NAMES: [&'static str; 3] = ["paper", "fabric", "forge"];
-
-    pub fn minecraft_version(&self) -> &String {
-        match self {
-            Self::Fabric {
-                minecraft_version, ..
-            }
-            | Self::Forge {
-                minecraft_version, ..
-            }
-            | Self::Paper {
-                minecraft_version, ..
-            } => minecraft_version,
-            Self::None => unimplemented!(),
-        }
-    }
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Generic {
+    pub name: String,
+    pub minecraft_version: String,
+    pub version: String,
 }
 
-impl Default for Loader {
+impl Default for Generic {
     fn default() -> Self {
-        Self::None
-    }
-}
-
-impl std::fmt::Display for Loader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Fabric { .. } => f.write_str("fabric"),
-            Self::Paper { .. } => f.write_str("paper"),
-            Self::Forge { .. } => f.write_str("forge"),
-            Self::None => f.write_str("none"),
+        Self {
+            name: String::default(),
+            minecraft_version: String::from("latest"),
+            version: String::from("latest"),
         }
     }
 }
 
-impl Loader {
-    pub fn with_params(loader: &str, minecraft_version: String) -> Self {
-        match loader {
-            "paper" => Self::Paper {
+impl From<Loader> for Generic {
+    fn from(value: Loader) -> Self {
+        match value {
+            Loader::Fabric {
                 minecraft_version,
-                build: String::from("latest"),
-            },
-            "fabric" => Self::Fabric {
+                loader_version,
+            } => Self {
+                name: String::from("fabric"),
                 minecraft_version,
-                loader_version: String::from("latest"),
+                version: loader_version,
             },
-            "forge" => Self::Forge {
+            Loader::Forge {
                 minecraft_version,
-                installer_version: String::from("latest"),
+                installer_version,
+            } => Self {
+                name: String::from("forge"),
+                minecraft_version,
+                version: installer_version,
             },
+            Loader::Paper {
+                minecraft_version,
+                build,
+            } => Self {
+                name: String::from("paper"),
+                minecraft_version,
+                version: build,
+            },
+            Loader::None => unimplemented!(),
+        }
+    }
+}
+impl Generic {
+    pub fn project_path(&self) -> String {
+        match self.name.as_str() {
+            "fabric" | "forge" => String::from("./mods/"),
+            "paper" => String::from("./plugins/"),
             _ => unimplemented!(),
         }
     }
 }
 
-pub fn fetch(loader: &Loader) -> Result<Loader, anyhow::Error> {
-    match loader {
-        Loader::Paper {
-            minecraft_version,
-            build,
-        } => paper::fetch(minecraft_version, build),
-        Loader::Fabric {
-            minecraft_version,
-            loader_version,
-        } => fabric::fetch(minecraft_version, loader_version),
-        Loader::Forge {
-            minecraft_version,
-            installer_version,
-        } => forge::fetch(minecraft_version, installer_version),
-        Loader::None => Ok(Loader::None),
+pub fn fetch(loader: &Generic) -> Result<Loader, anyhow::Error> {
+    match loader.name.as_str() {
+        "paper" => paper::fetch(&loader.minecraft_version, &loader.version),
+        "fabric" => fabric::fetch(&loader.minecraft_version, &loader.version),
+        "forge" => forge::fetch(&loader.minecraft_version, &loader.version),
+        _ => Ok(Loader::None),
     }
 }

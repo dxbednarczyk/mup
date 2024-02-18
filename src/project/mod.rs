@@ -9,9 +9,9 @@ pub const BASE_URL: &str = "https://api.modrinth.com/v2";
 
 #[derive(Debug, Subcommand)]
 pub enum Project {
-    /// Add a mod or plugin, including its dependencies
+    /// Add mods or plugins, including its dependencies
     Add {
-        /// The project's ID or slug
+        /// The project ID or slug
         id: String,
 
         /// The version ID to target
@@ -26,11 +26,10 @@ pub enum Project {
         #[arg(short, long, action)]
         no_deps: bool,
     },
-    /// Remove a mod or plugin
+    /// Remove mods or plugins
     Remove {
-        /// The slug of the project to remove
-        #[arg(short, long, required = true)]
-        slug: String,
+        /// The project ID or slug
+        id: String,
 
         /// Keep the downloaded jarfile
         #[arg(long, action)]
@@ -54,7 +53,7 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
             optional_deps,
             no_deps,
         } => actions::add(&mut lf, id, version_id.as_ref(), *optional_deps, *no_deps)?,
-        Project::Remove { slug, keep_jarfile } => actions::remove(&mut lf, slug, *keep_jarfile)?,
+        Project::Remove { id, keep_jarfile } => actions::remove(&mut lf, id, *keep_jarfile)?,
     }
 
     Ok(())

@@ -65,11 +65,20 @@ pub fn fetch(
         return Err(anyhow!("project {id} does not support server side"));
     }
 
-    let minecraft_version = lockfile.loader.minecraft_version();
-
-    if !project_info.game_versions.contains(minecraft_version) {
+    if !project_info.loaders.contains(&lockfile.loader.name) {
         return Err(anyhow!(
-            "project does not support Minecraft version {minecraft_version}",
+            "project {id} does not support {}",
+            lockfile.loader.name
+        ));
+    }
+
+    if !project_info
+        .game_versions
+        .contains(&lockfile.loader.minecraft_version)
+    {
+        return Err(anyhow!(
+            "project does not support Minecraft version {}",
+            lockfile.loader.minecraft_version
         ));
     }
 
@@ -78,22 +87,28 @@ pub fn fetch(
         return Err(anyhow!("project version {version} does not exist"));
     }
 
-    if !project_info.loaders.contains(&lockfile.loader.to_string()) {
-        return Err(anyhow!("project does not support {}", lockfile.loader));
+    if !project_info
+        .game_versions
+        .contains(&lockfile.loader.minecraft_version)
+    {
+        return Err(anyhow!(
+            "project does not support minecraft version {}",
+            lockfile.loader.minecraft_version
+        ));
     }
 
     let version_info = if version.as_str() == "latest" {
         get_latest_version(
             &project_info,
-            minecraft_version,
-            &lockfile.loader.to_string(),
+            &lockfile.loader.minecraft_version,
+            &lockfile.loader.name,
         )?
     } else {
         get_version(
             &project_info,
             &version,
-            minecraft_version,
-            &lockfile.loader.to_string(),
+            &lockfile.loader.minecraft_version,
+            &lockfile.loader.name,
         )?
     };
 
@@ -103,11 +118,11 @@ pub fn fetch(
         .find(|f| f.filename.ends_with(".jar"))
         .unwrap();
 
-    let save_to = match lockfile.loader.to_string().as_str() {
-        "paper" => PathBuf::from(&format!("./plugins/{}", project_file.filename)),
-        "fabric" | "forge" => PathBuf::from(&format!("./mods/{}", project_file.filename)),
-        _ => unreachable!(),
-    };
+    let save_to = PathBuf::from(&format!(
+        "{}{}",
+        lockfile.loader.project_path(),
+        project_file.filename
+    ));
 
     download_with_checksum::<Sha512>(&project_file.url, &save_to, &project_file.hashes.sha512)?;
 
@@ -157,16 +172,12 @@ pub fn add(
     Ok(())
 }
 
-pub fn remove(
-    lockfile: &mut Lockfile,
-    slug: &str,
-    keep_jarfile: bool,
-) -> Result<(), anyhow::Error> {
-    if lockfile.get(slug).is_err() {
-        return Err(anyhow!("project {slug} does not exist in the lockfile"));
+pub fn remove(lockfile: &mut Lockfile, id: &str, keep_jarfile: bool) -> Result<(), anyhow::Error> {
+    if lockfile.get(id).is_err() {
+        return Err(anyhow!("project {id} does not exist in the lockfile"));
     }
 
-    lockfile.remove(slug, keep_jarfile)?;
+    lockfile.remove(id, keep_jarfile)?;
 
     Ok(())
 }

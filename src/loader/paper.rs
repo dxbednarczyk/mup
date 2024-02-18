@@ -10,7 +10,7 @@ const BASE_URL: &str = "https://api.papermc.io/v2/projects/paper";
 
 #[derive(Deserialize)]
 struct Versions {
-    versions: Vec<String>
+    versions: Vec<String>,
 }
 
 #[derive(Deserialize)]

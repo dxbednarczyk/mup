@@ -155,7 +155,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cutoff() -> Result<(), anyhow::Error> {
+    fn test_cutoff() {
         let minecraft = Versioning::new("1.2.5").unwrap();
         let installer = "who cares";
         let expected: Result<(), anyhow::Error> = Err(anyhow!(
@@ -168,7 +168,5 @@ mod tests {
             .to_string();
 
         assert_eq!(expected.err().unwrap().to_string(), resp);
-
-        Ok(())
     }
 }

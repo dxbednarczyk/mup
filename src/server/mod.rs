@@ -41,6 +41,7 @@ pub fn action(server: &Server) -> Result<(), anyhow::Error> {
 
 fn init(minecraft_version: &str, loader: &str) -> Result<(), anyhow::Error> {
     let mut lf = Lockfile::with_params(minecraft_version, loader)?;
+
     if !lf.is_initialized() {
         return Err(anyhow!(
             "lockfile was initialized with invalid configuration"
@@ -57,7 +58,7 @@ fn init(minecraft_version: &str, loader: &str) -> Result<(), anyhow::Error> {
 fn install() -> Result<(), anyhow::Error> {
     let mut lf = Lockfile::init()?;
     if !lf.is_initialized() {
-        return Err(anyhow!("failed to read lockfile from disk"));
+        return Err(anyhow!("failed to read lockfile"));
     }
 
     _ = loader::fetch(&lf.loader)?;

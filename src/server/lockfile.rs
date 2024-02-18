@@ -9,20 +9,21 @@ use std::{
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
+use strum::VariantNames;
 use versions::Versioning;
 
-use crate::loader::{self, Loader};
+use crate::loader::{self, Generic, Loader};
 use crate::project::actions;
 
 const LOCKFILE_PATH: &str = "pap.lock";
 
-#[derive(Deserialize, Default, Serialize)]
+#[derive(Debug, Deserialize, Default, Serialize)]
 pub struct Lockfile {
-    pub loader: loader::Loader,
+    pub loader: loader::Generic,
     pub project: Vec<Entry>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Entry {
     pub slug: String,
     pub installed_version: String,
@@ -46,7 +47,7 @@ impl Lockfile {
             File::create(LOCKFILE_PATH)?;
 
             Self {
-                loader: Loader::None,
+                loader: Generic::default(),
                 project: vec![],
             }
         };
@@ -55,7 +56,7 @@ impl Lockfile {
     }
 
     pub fn with_params(minecraft_version: &str, loader: &str) -> Result<Self, anyhow::Error> {
-        if !Loader::NAMES.contains(&loader) {
+        if !Loader::VARIANTS.contains(&loader) {
             return Err(anyhow!("{loader} is not supported as a modloader"));
         }
 
@@ -67,7 +68,11 @@ impl Lockfile {
             ));
         }
 
-        let l = Loader::with_params(loader, minecraft_version.to_string());
+        let l = Generic {
+            name: loader.to_string(),
+            minecraft_version: loader.to_string(),
+            version: String::default(),
+        };
 
         File::create(LOCKFILE_PATH)?;
 
@@ -129,9 +134,12 @@ impl Lockfile {
     }
 
     pub fn is_initialized(&mut self) -> bool {
-        let mv = Versioning::new(self.loader.minecraft_version()).unwrap();
+        let minecraft_version = &self.loader.minecraft_version;
+        let loader = &self.loader.name;
 
-        return !mv.is_complex() && Loader::NAMES.contains(&self.loader.to_string().as_str());
+        let version = Versioning::new(minecraft_version).unwrap();
+
+        return !version.is_complex() && Loader::VARIANTS.contains(&loader.as_str());
     }
 
     fn write_out(&mut self) -> Result<(), anyhow::Error> {

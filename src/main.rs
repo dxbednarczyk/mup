@@ -37,7 +37,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     match &cli.command {
         Some(Commands::Loader(l)) => {
-            loader::fetch(l)?;
+            loader::fetch(&l.clone().into())?;
             return Ok(());
         }
         Some(Commands::Project(p)) => project::action(p)?,
