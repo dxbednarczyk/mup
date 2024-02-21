@@ -9,17 +9,16 @@ use std::{
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
-use strum::VariantNames;
 use versions::Versioning;
 
-use crate::loader::{self, Generic, Loader};
+use crate::loader::Loader;
 use crate::project::actions;
 
 const LOCKFILE_PATH: &str = "pap.lock";
 
 #[derive(Debug, Deserialize, Default, Serialize)]
 pub struct Lockfile {
-    pub loader: loader::Generic,
+    pub loader: Loader,
     pub project: Vec<Entry>,
 }
 
@@ -47,7 +46,7 @@ impl Lockfile {
             File::create(LOCKFILE_PATH)?;
 
             Self {
-                loader: Generic::default(),
+                loader: Loader::default(),
                 project: vec![],
             }
         };
@@ -56,10 +55,6 @@ impl Lockfile {
     }
 
     pub fn with_params(minecraft_version: &str, loader: &str) -> Result<Self, anyhow::Error> {
-        if !Loader::VARIANTS.contains(&loader) {
-            return Err(anyhow!("{loader} is not supported as a modloader"));
-        }
-
         let mv = Versioning::new(minecraft_version).unwrap();
         if mv.is_complex() {
             return Err(anyhow!(
@@ -68,10 +63,10 @@ impl Lockfile {
             ));
         }
 
-        let l = Generic {
+        let l = Loader {
             name: loader.to_string(),
-            minecraft_version: loader.to_string(),
-            version: String::default(),
+            minecraft_version: minecraft_version.to_string(),
+            version: String::from("latest"),
         };
 
         File::create(LOCKFILE_PATH)?;
@@ -135,11 +130,10 @@ impl Lockfile {
 
     pub fn is_initialized(&mut self) -> bool {
         let minecraft_version = &self.loader.minecraft_version;
-        let loader = &self.loader.name;
 
         let version = Versioning::new(minecraft_version).unwrap();
 
-        return !version.is_complex() && Loader::VARIANTS.contains(&loader.as_str());
+        !version.is_complex()
     }
 
     fn write_out(&mut self) -> Result<(), anyhow::Error> {

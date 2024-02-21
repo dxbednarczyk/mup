@@ -20,8 +20,19 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Download a modloader jarfile
-    #[command(subcommand)]
-    Loader(loader::Loader),
+    Loader {
+        /// Name of the loader to download
+        #[arg(value_name = "loader")]
+        name: String,
+
+        /// Minecraft version to target
+        #[arg(short, long, default_value = "latest")]
+        minecraft_version: String,
+
+        /// Loader version to target
+        #[arg(short, long, default_value = "latest")]
+        version: String,
+    },
 
     /// Work with Modrinth plugins and mods
     #[command(subcommand)]
@@ -36,8 +47,12 @@ fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Loader(l)) => {
-            loader::fetch(&l.clone().into())?;
+        Some(Commands::Loader {
+            name,
+            minecraft_version,
+            version,
+        }) => {
+            _ = loader::fetch(name, minecraft_version, version)?;
             return Ok(());
         }
         Some(Commands::Project(p)) => project::action(p)?,

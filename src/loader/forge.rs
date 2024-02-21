@@ -72,9 +72,10 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<Loader,
 
     eprintln!("This is an installer, not a server loader! Please run it and install the server before proceeding.");
 
-    Ok(Loader::Forge {
+    Ok(Loader {
+        name: String::from("forge"),
         minecraft_version: minecraft.to_string(),
-        installer_version: installer.to_string(),
+        version: installer.to_string(),
     })
 }
 

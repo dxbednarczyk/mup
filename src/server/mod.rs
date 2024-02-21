@@ -48,7 +48,11 @@ fn init(minecraft_version: &str, loader: &str) -> Result<(), anyhow::Error> {
         ));
     }
 
-    loader::fetch(&lf.loader)?;
+    loader::fetch(
+        &lf.loader.name,
+        &lf.loader.minecraft_version,
+        &lf.loader.version,
+    )?;
 
     eula::sign()?;
 
@@ -61,7 +65,11 @@ fn install() -> Result<(), anyhow::Error> {
         return Err(anyhow!("failed to read lockfile"));
     }
 
-    _ = loader::fetch(&lf.loader)?;
+    _ = loader::fetch(
+        &lf.loader.name,
+        &lf.loader.minecraft_version,
+        &lf.loader.version,
+    )?;
 
     for entry in &lf.project {
         _ = project::actions::fetch(&lf, &entry.slug, Some(entry.installed_version.clone()))?;

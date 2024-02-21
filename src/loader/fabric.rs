@@ -32,9 +32,10 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<Loader, an
     let mut file = File::create("fabric.jar")?;
     io::copy(&mut resp.into_reader(), &mut file)?;
 
-    Ok(Loader::Fabric {
+    Ok(Loader {
+        name: String::from("fabric"),
         minecraft_version: game,
-        loader_version: loader,
+        version: loader,
     })
 }
 

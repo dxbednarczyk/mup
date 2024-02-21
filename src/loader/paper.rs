@@ -56,9 +56,10 @@ pub fn fetch(minecraft_version: &str, build: &str) -> Result<Loader, anyhow::Err
         &build.downloads.application.sha256,
     )?;
 
-    Ok(Loader::Paper {
+    Ok(Loader {
+        name: String::from("paper"),
         minecraft_version: minecraft,
-        build: build.build.to_string(),
+        version: build.build.to_string(),
     })
 }
 
