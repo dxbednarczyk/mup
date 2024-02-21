@@ -23,6 +23,8 @@ impl Default for Loader {
 }
 
 impl Loader {
+    pub const VALID_LOADERS: [&'static str; 3] = ["fabric", "forge", "paper"];
+
     pub fn project_path(&self) -> String {
         match self.name.as_str() {
             "fabric" | "forge" => String::from("./mods/"),
@@ -33,14 +35,22 @@ impl Loader {
 }
 
 pub fn fetch(
-    loader: &str,
+    loader: Option<&String>,
     minecraft_version: &str,
     version: &str,
 ) -> Result<Loader, anyhow::Error> {
-    match loader {
+    if loader.is_none() {
+        return Err(anyhow!("no loader provided"));
+    };
+
+    match loader.unwrap().as_str() {
         "paper" => paper::fetch(minecraft_version, version),
         "fabric" => fabric::fetch(minecraft_version, version),
         "forge" => forge::fetch(minecraft_version, version),
-        _ => Err(anyhow!("{loader} is currently unsupported")),
+        l => Err(anyhow!("{l} is currently unsupported")),
     }
+}
+
+pub fn list() {
+    println!("{}", Loader::VALID_LOADERS.join(", "));
 }

@@ -23,7 +23,7 @@ enum Commands {
     Loader {
         /// Name of the loader to download
         #[arg(value_name = "loader")]
-        name: String,
+        name: Option<String>,
 
         /// Minecraft version to target
         #[arg(short, long, default_value = "latest")]
@@ -32,6 +32,10 @@ enum Commands {
         /// Loader version to target
         #[arg(short, long, default_value = "latest")]
         version: String,
+
+        /// List all valid loaders
+        #[arg(short, long, action)]
+        list: bool,
     },
 
     /// Work with Modrinth plugins and mods
@@ -51,8 +55,14 @@ fn main() -> Result<(), anyhow::Error> {
             name,
             minecraft_version,
             version,
+            list,
         }) => {
-            _ = loader::fetch(name, minecraft_version, version)?;
+            if *list {
+                loader::list();
+            } else {
+                _ = loader::fetch(name.as_ref(), minecraft_version, version)?;
+            };
+
             return Ok(());
         }
         Some(Commands::Project(p)) => project::action(p)?,

@@ -49,7 +49,7 @@ fn init(minecraft_version: &str, loader: &str) -> Result<(), anyhow::Error> {
     }
 
     loader::fetch(
-        &lf.loader.name,
+        Some(&lf.loader.name),
         &lf.loader.minecraft_version,
         &lf.loader.version,
     )?;
@@ -66,7 +66,7 @@ fn install() -> Result<(), anyhow::Error> {
     }
 
     _ = loader::fetch(
-        &lf.loader.name,
+        Some(&lf.loader.name),
         &lf.loader.minecraft_version,
         &lf.loader.version,
     )?;
