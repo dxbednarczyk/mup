@@ -32,16 +32,16 @@ jobs:
       - name: "Test Paper downloading"
         run: |
           cargo run -- loader paper
-          cargo run -- loader paper -m 1.20.4 -b 379
+          cargo run -- loader paper -m 1.20.4 -v 379
 
       - name: "Test Fabric downloading"
         run: |
           cargo run -- loader fabric
-          cargo run -- loader fabric -l 0.15.3 -m 1.20.4
+          cargo run -- loader fabric -v 0.15.3 -m 1.20.4
            
       - name: "Test Forge downloading"
         run: |
           cargo run -- loader forge
           cargo run -- loader forge -m 1.7.10_pre4
           cargo run -- loader forge -m 1.9
-          cargo run -- loader forge -m 1.19.3 -i 44.1.0
+          cargo run -- loader forge -m 1.19.3 -v 44.1.0
