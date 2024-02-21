@@ -45,3 +45,8 @@ jobs:
           cargo run -- loader forge -m 1.7.10_pre4
           cargo run -- loader forge -m 1.9
           cargo run -- loader forge -m 1.19.3 -v 44.1.0
+
+      - name: "Test NeoForge downloading"
+        run: |
+          cargo run -- loader neoforge -m 1.20.1
+          cargo run -- loader neoforge -m 1.20.4

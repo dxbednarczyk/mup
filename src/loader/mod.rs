@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 mod fabric;
 mod forge;
 mod paper;
+mod neoforge;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Loader {
@@ -23,7 +24,7 @@ impl Default for Loader {
 }
 
 impl Loader {
-    pub const VALID_LOADERS: [&'static str; 3] = ["fabric", "forge", "paper"];
+    pub const VALID_LOADERS: [&'static str; 4] = ["fabric", "forge", "paper", "neoforge"];
 
     pub fn project_path(&self) -> String {
         match self.name.as_str() {
@@ -47,6 +48,7 @@ pub fn fetch(
         "paper" => paper::fetch(minecraft_version, version),
         "fabric" => fabric::fetch(minecraft_version, version),
         "forge" => forge::fetch(minecraft_version, version),
+        "neoforge" => neoforge::fetch(minecraft_version),
         l => Err(anyhow!("{l} is currently unsupported")),
     }
 }
