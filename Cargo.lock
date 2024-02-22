@@ -329,7 +329,6 @@ dependencies = [
  "clap",
  "serde",
  "sha2",
- "tee",
  "toml",
  "ureq",
  "versions",
@@ -490,11 +489,6 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
-
-[[package]]
-name = "tee"
-version = "0.2.0"
-source = "git+https://github.com/fredrik-hammar/tee.git?branch=master#5028354679d64c44ef88237db900ce9229d6f9b5"
 
 [[package]]
 name = "tinyvec"

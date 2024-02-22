@@ -20,13 +20,17 @@ struct Installer {
 // see https://github.com/neoforged/websites/blob/main/assets/js/neoforge.js
 pub fn fetch(minecraft_version: &str) -> Result<Loader, anyhow::Error> {
     if minecraft_version == "latest" {
-        return Err(anyhow!("for neoforge, you must specify a minecraft version to target"))
+        return Err(anyhow!(
+            "for neoforge, you must specify a minecraft version to target"
+        ));
     }
 
     let parsed_version = Versioning::new(minecraft_version).unwrap();
 
     if parsed_version < *MINECRAFT_CUTOFF {
-        return Err(anyhow!("neoforge does not support Minecraft versions before 1.20.1"))
+        return Err(anyhow!(
+            "neoforge does not support Minecraft versions before 1.20.1"
+        ));
     }
 
     let gav = if parsed_version == *MINECRAFT_CUTOFF {
@@ -47,7 +51,12 @@ pub fn fetch(minecraft_version: &str) -> Result<Loader, anyhow::Error> {
         .call()?
         .into_json()?;
 
-    let installer_url = format!("{BASE_DOWNLOAD_URL}{gav}/{}/{}-{}-installer.jar", installer.version, gav.rsplit_once('/').unwrap().1, installer.version);
+    let installer_url = format!(
+        "{BASE_DOWNLOAD_URL}{gav}/{}/{}-{}-installer.jar",
+        installer.version,
+        gav.rsplit_once('/').unwrap().1,
+        installer.version
+    );
 
     println!("Downloading installer jarfile");
     let resp = ureq::get(&installer_url)
@@ -61,7 +70,7 @@ pub fn fetch(minecraft_version: &str) -> Result<Loader, anyhow::Error> {
 
     eprintln!("This is an installer, not a server loader! Please run it and install the server before proceeding.");
 
-    Ok(Loader{
+    Ok(Loader {
         name: String::from("neoforge"),
         minecraft_version: minecraft_version.to_string(),
         version: installer.version,

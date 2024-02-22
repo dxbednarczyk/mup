@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 mod fabric;
 mod forge;
-mod paper;
 mod neoforge;
+mod paper;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Loader {

@@ -1,8 +1,4 @@
-use std::{
-    fs::{self, File},
-    io::{self, Write},
-    path::PathBuf,
-};
+use std::{fs::File, io::Write, path::PathBuf};
 
 use anyhow::anyhow;
 
@@ -15,7 +11,7 @@ pub fn download_with_checksum<T: sha2::Digest + Write>(
     wanted_hash: &str,
 ) -> Result<(), anyhow::Error> {
     println!("Downloading jarfile from {url}");
-    let resp = ureq::get(url)
+    let mut resp = ureq::get(url)
         .set("User-Agent", FAKE_USER_AGENT)
         .call()?
         .into_reader();
@@ -26,21 +22,29 @@ pub fn download_with_checksum<T: sha2::Digest + Write>(
 
     let mut output = File::create(path)?;
 
-    let mut hasher = T::new();
+    let digest = {
+        let mut hasher = T::new();
+        let mut buf = [0; 1024];
 
-    let mut tee = tee::tee(resp, &mut output);
-    io::copy(&mut tee, &mut hasher)?;
+        loop {
+            let count = resp.read(&mut buf)?;
+            if count == 0 {
+                break;
+            }
 
-    let hash_bytes = hasher.finalize();
+            _ = output.write(&buf[..count])?;
+            hasher.update(&buf[..count]);
+        }
 
-    let hash = hash_bytes
+        hasher.finalize()
+    };
+
+    let hash = digest
         .as_slice()
         .iter()
         .fold(String::new(), |acc, b| acc + &format!("{b:02x}"));
 
     if hash != wanted_hash {
-        fs::remove_file(path)?;
-
         return Err(anyhow!("hashes do not match"));
     }
 
