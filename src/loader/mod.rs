@@ -19,7 +19,7 @@ pub fn fetch(loader: &str, minecraft_version: &str, version: &str) -> Result<(),
 
 pub fn parse(input: &str) -> Result<String, anyhow::Error> {
     if !VALID_LOADERS.contains(&input) {
-        return Err(anyhow!("try one of {VALID_LOADERS:?}"))
+        return Err(anyhow!("try one of {VALID_LOADERS:?}"));
     }
 
     Ok(input.to_string())

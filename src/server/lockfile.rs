@@ -55,9 +55,10 @@ impl Loader {
 pub struct Entry {
     pub slug: String,
     pub installed_version: String,
-    path: PathBuf,
-    remote_url: String,
-    sha512: String,
+    pub version_number: String,
+    pub path: PathBuf,
+    pub remote_url: String,
+    pub sha512: String,
 }
 
 impl Lockfile {
@@ -103,7 +104,7 @@ impl Lockfile {
             project: vec![],
         };
 
-        lf.write_out()?;
+        lf.save()?;
 
         Ok(lf)
     }
@@ -125,6 +126,7 @@ impl Lockfile {
         let entry = Entry {
             slug: project.slug.clone(),
             installed_version: version.id.clone(),
+            version_number: version.number.clone(),
             path,
             remote_url: project_file.url.clone(),
             sha512: project_file.hashes.sha512.clone(),
@@ -132,7 +134,7 @@ impl Lockfile {
 
         self.project.push(entry);
 
-        self.write_out()?;
+        self.save()?;
 
         Ok(())
     }
@@ -150,7 +152,7 @@ impl Lockfile {
 
         self.project.remove(entry);
 
-        self.write_out()?;
+        self.save()?;
 
         Ok(())
     }
@@ -163,7 +165,7 @@ impl Lockfile {
         !version.is_complex() && loader::parse(&self.loader.name).is_ok()
     }
 
-    fn write_out(&mut self) -> Result<(), anyhow::Error> {
+    pub fn save(&mut self) -> Result<(), anyhow::Error> {
         let mut output = fs::OpenOptions::new()
             .write(true)
             .truncate(true)

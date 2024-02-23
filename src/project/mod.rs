@@ -5,8 +5,6 @@ use crate::server::lockfile::Lockfile;
 
 pub mod actions;
 
-pub const BASE_URL: &str = "https://api.modrinth.com/v2";
-
 #[derive(Debug, Subcommand)]
 pub enum Project {
     /// Add mods or plugins, including its dependencies
@@ -35,6 +33,8 @@ pub enum Project {
         #[arg(long, action)]
         keep_jarfile: bool,
     },
+    /// Update all mods or plogins
+    Update,
 }
 
 pub fn action(project: &Project) -> Result<(), anyhow::Error> {
@@ -54,6 +54,7 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
             no_deps,
         } => actions::add(&mut lf, id, version_id.as_ref(), *optional_deps, *no_deps)?,
         Project::Remove { id, keep_jarfile } => actions::remove(&mut lf, id, *keep_jarfile)?,
+        Project::Update => actions::update(&mut lf)?,
     }
 
     Ok(())

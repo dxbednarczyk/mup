@@ -1,23 +1,27 @@
 #![allow(clippy::case_sensitive_file_extension_comparisons)]
 
-use std::path::PathBuf;
+use std::{cmp::Ordering, fs, path::PathBuf};
 
 use anyhow::anyhow;
 use log::info;
 use pap::{download_with_checksum, FAKE_USER_AGENT};
 use serde::Deserialize;
 use sha2::Sha512;
+use versions::Versioning;
 
 use crate::server::lockfile::Lockfile;
+
+pub const BASE_URL: &str = "https://api.modrinth.com/v2";
 
 #[derive(Clone, Deserialize)]
 pub struct Version {
     game_versions: Vec<String>,
     loaders: Vec<String>,
     pub id: String,
-    //version_type: String,
     files: Vec<ProjectFile>,
     dependencies: Vec<Dependency>,
+    #[serde(rename = "version_number")]
+    pub number: String,
     project_id: String,
 }
 
@@ -54,7 +58,7 @@ pub fn fetch(
     id: &str,
     version_input: Option<String>,
 ) -> Result<(Version, ProjectInfo, ProjectFile, PathBuf), anyhow::Error> {
-    let formatted_url = format!("{}/project/{id}", super::BASE_URL);
+    let formatted_url = format!("{BASE_URL}/project/{id}");
 
     info!("Fetching project info for {id}");
 
@@ -101,7 +105,7 @@ pub fn fetch(
 
     let version_info = if version.as_str() == "latest" {
         get_latest_version(
-            &project_info,
+            &project_info.slug,
             &lockfile.loader.minecraft_version,
             &lockfile.loader.name,
         )?
@@ -114,26 +118,9 @@ pub fn fetch(
         )?
     };
 
-    let project_file: &ProjectFile = version_info
-        .files
-        .iter()
-        .find(|f| f.filename.ends_with(".jar"))
-        .unwrap();
+    let (project_file, save_to) = save(&lockfile.loader.project_path(), &version_info)?;
 
-    let save_to = PathBuf::from(&format!(
-        "{}{}",
-        lockfile.loader.project_path(),
-        project_file.filename
-    ));
-
-    download_with_checksum::<Sha512>(&project_file.url, &save_to, &project_file.hashes.sha512)?;
-
-    Ok((
-        version_info.clone(),
-        project_info,
-        project_file.clone(),
-        save_to,
-    ))
+    Ok((version_info, project_info, project_file, save_to))
 }
 
 pub fn add(
@@ -184,13 +171,64 @@ pub fn remove(lockfile: &mut Lockfile, id: &str, keep_jarfile: bool) -> Result<(
     Ok(())
 }
 
+pub fn update(lockfile: &mut Lockfile) -> Result<(), anyhow::Error> {
+    for dep in &mut lockfile.project {
+        let latest = get_latest_version(
+            &dep.slug,
+            &lockfile.loader.minecraft_version,
+            &lockfile.loader.name,
+        )?;
+
+        let latest_parsed = Versioning::new(&latest.number).unwrap();
+        let current_parsed = Versioning::new(&dep.version_number).unwrap();
+
+        match current_parsed.cmp(&latest_parsed) {
+            Ordering::Equal => continue,
+            Ordering::Greater => {
+                return Err(anyhow!(
+                    "version mismatch: current version is higher than latest modrinth version"
+                ))
+            }
+            Ordering::Less => (),
+        }
+
+        let (project_file, path) = save(&lockfile.loader.project_path(), &latest)?;
+
+        fs::remove_file(dep.path.clone())?;
+
+        dep.installed_version = latest.id;
+        dep.version_number = latest.number;
+        dep.path = path;
+        dep.remote_url = project_file.url;
+        dep.sha512 = project_file.hashes.sha512;
+    }
+
+    lockfile.save()?;
+
+    Ok(())
+}
+
+fn save(project_path: &str, version: &Version) -> Result<(ProjectFile, PathBuf), anyhow::Error> {
+    let project_file: &ProjectFile = version
+        .files
+        .iter()
+        .find(|f| f.filename.ends_with(".jar"))
+        .unwrap();
+
+    let save_to = PathBuf::from(&format!("{}{}", project_path, project_file.filename));
+
+    download_with_checksum::<Sha512>(&project_file.url, &save_to, &project_file.hashes.sha512)?;
+
+    Ok((project_file.clone(), save_to))
+}
+
 fn get_version(
     project: &ProjectInfo,
     version_id: &str,
     minecraft_input: &String,
     loader: &String,
 ) -> Result<Version, anyhow::Error> {
-    let formatted_url = format!("{}/version/{version_id}", super::BASE_URL);
+    let formatted_url = format!("{BASE_URL}/version/{version_id}");
 
     info!("fetching version {version_id} of {}", project.slug);
 
@@ -222,11 +260,11 @@ fn get_version(
 }
 
 fn get_latest_version(
-    project: &ProjectInfo,
+    slug: &str,
     minecraft_version: &String,
     loader: &String,
 ) -> Result<Version, anyhow::Error> {
-    let formatted_url = format!("{}/project/{}/version", super::BASE_URL, project.slug);
+    let formatted_url = format!("{BASE_URL}/project/{slug}/version");
 
     let mut req = ureq::get(&formatted_url)
         .set("User-Agent", FAKE_USER_AGENT)
@@ -239,7 +277,7 @@ fn get_latest_version(
         req = req.query("loaders", format!("[\"{loader}\"]").as_str());
     }
 
-    info!("fetching latest version of {}", project.slug);
+    info!("fetching latest version of {slug}");
 
     let resp: Vec<Version> = req.call()?.into_json()?;
 
