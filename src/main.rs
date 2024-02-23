@@ -2,6 +2,7 @@
 #![feature(lazy_cell)]
 
 use clap::{Parser, Subcommand};
+use server::lockfile;
 
 mod loader;
 mod project;
@@ -58,12 +59,10 @@ fn main() -> Result<(), anyhow::Error> {
             list,
         }) => {
             if *list {
-                loader::list();
+                lockfile::Loader::list();
             } else {
-                _ = loader::fetch(name.as_ref(), minecraft_version, version)?;
-            };
-
-            return Ok(());
+                loader::fetch(name.as_ref(), minecraft_version, version)?;
+            }
         }
         Some(Commands::Project(p)) => project::action(p)?,
         Some(Commands::Server(s)) => server::action(s)?,

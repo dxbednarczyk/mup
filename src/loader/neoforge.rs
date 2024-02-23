@@ -4,8 +4,6 @@ use anyhow::anyhow;
 use serde::Deserialize;
 use versions::Versioning;
 
-use super::Loader;
-
 static MINECRAFT_CUTOFF: LazyLock<Versioning> =
     LazyLock::new(|| Versioning::new("1.20.1").unwrap());
 
@@ -18,7 +16,7 @@ struct Installer {
 }
 
 // see https://github.com/neoforged/websites/blob/main/assets/js/neoforge.js
-pub fn fetch(minecraft_version: &str) -> Result<Loader, anyhow::Error> {
+pub fn fetch(minecraft_version: &str) -> Result<(), anyhow::Error> {
     if minecraft_version == "latest" {
         return Err(anyhow!(
             "for neoforge, you must specify a minecraft version to target"
@@ -70,9 +68,5 @@ pub fn fetch(minecraft_version: &str) -> Result<Loader, anyhow::Error> {
 
     eprintln!("This is an installer, not a server loader! Please run it and install the server before proceeding.");
 
-    Ok(Loader {
-        name: String::from("neoforge"),
-        minecraft_version: minecraft_version.to_string(),
-        version: installer.version,
-    })
+    Ok(())
 }

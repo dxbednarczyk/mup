@@ -3,8 +3,6 @@ use std::{fs::File, io};
 use anyhow::anyhow;
 use serde::Deserialize;
 
-use super::Loader;
-
 const BASE_URL: &str = "https://meta.fabricmc.net/v2/versions";
 
 #[derive(Clone, Deserialize)]
@@ -17,7 +15,7 @@ struct Installer {
     pub version: String,
 }
 
-pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<Loader, anyhow::Error> {
+pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<(), anyhow::Error> {
     let game = get_version("/game", minecraft_version)?.version;
     let loader = get_version("/loader", loader_version)?.version;
     let installer = get_installer()?.version;
@@ -25,6 +23,7 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<Loader, an
     let formatted_url = format!("{BASE_URL}/loader/{game}/{loader}/{installer}/server/jar");
 
     println!("Downloading jarfile");
+
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
@@ -32,11 +31,7 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<Loader, an
     let mut file = File::create("fabric.jar")?;
     io::copy(&mut resp.into_reader(), &mut file)?;
 
-    Ok(Loader {
-        name: String::from("fabric"),
-        minecraft_version: game,
-        version: loader,
-    })
+    Ok(())
 }
 
 fn get_version(path: &str, version: &str) -> Result<Version, anyhow::Error> {

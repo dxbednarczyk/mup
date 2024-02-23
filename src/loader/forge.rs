@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fs::File, io, sync::LazyLock};
 
-use super::Loader;
 use anyhow::anyhow;
 use serde::Deserialize;
 use versions::Versioning;
@@ -25,7 +24,7 @@ struct PromosResponse {
     promos: HashMap<String, String>,
 }
 
-pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<Loader, anyhow::Error> {
+pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<(), anyhow::Error> {
     println!("fetching promos");
 
     let promos = ureq::get(PROMOS_URL)
@@ -61,6 +60,7 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<Loader,
     let formatted_url = format!("{BASE_MAVEN_URL}/{version_tag}/forge-{version_tag}-installer.jar");
 
     println!("Downloading installer jarfile");
+
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
@@ -72,11 +72,7 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<Loader,
 
     eprintln!("This is an installer, not a server loader! Please run it and install the server before proceeding.");
 
-    Ok(Loader {
-        name: String::from("forge"),
-        minecraft_version: minecraft.to_string(),
-        version: installer.to_string(),
-    })
+    Ok(())
 }
 
 fn get_version_tag(minecraft: &Versioning, installer: &str) -> Result<String, anyhow::Error> {

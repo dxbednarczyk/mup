@@ -65,7 +65,7 @@ fn install() -> Result<(), anyhow::Error> {
         return Err(anyhow!("failed to read lockfile"));
     }
 
-    _ = loader::fetch(
+    loader::fetch(
         Some(&lf.loader.name),
         &lf.loader.minecraft_version,
         &lf.loader.version,

@@ -3,7 +3,7 @@ use std::{fs::File, io::Write, path::PathBuf};
 use anyhow::anyhow;
 
 pub const FAKE_USER_AGENT: &str =
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.";
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.3";
 
 pub fn download_with_checksum<T: sha2::Digest + Write>(
     url: &str,
