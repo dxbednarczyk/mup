@@ -16,7 +16,7 @@ https://github.com/dxbednarczyk/pap-ng/assets/54457902/1a0c8266-cbf8-48b1-bec8-a
 - [x] Produce easily reproducible, portable server configuration
     - [x] Lockfile with detailed information on installed mods
     - [x] Support for installing lockfile dependencies
-    - [ ] Support for updating lockfile dependencies
+    - [x] Support for updating lockfile dependencies
 
 ✅ Be an all-in-one tool that keeps it simple, stupid!
 
