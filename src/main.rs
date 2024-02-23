@@ -27,7 +27,7 @@ enum Commands {
     /// Download a modloader jarfile
     Loader {
         /// Name of the loader to download
-        #[arg(value_name = "loader", value_parser = ["fabric", "forge", "paper", "neoforge"])]
+        #[arg(value_name = "loader", value_parser = loader::parse)]
         name: String,
 
         /// Minecraft version to target
