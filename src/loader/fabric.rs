@@ -1,6 +1,7 @@
 use std::{fs::File, io};
 
 use anyhow::anyhow;
+use log::info;
 use serde::Deserialize;
 
 const BASE_URL: &str = "https://meta.fabricmc.net/v2/versions";
@@ -22,7 +23,7 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<(), anyhow
 
     let formatted_url = format!("{BASE_URL}/loader/{game}/{loader}/{installer}/server/jar");
 
-    println!("Downloading jarfile");
+    info!("downloading jarfile");
 
     let resp = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
@@ -37,7 +38,7 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<(), anyhow
 fn get_version(path: &str, version: &str) -> Result<Version, anyhow::Error> {
     let stripped = path.strip_prefix('/').unwrap();
 
-    println!("Fetching information for {stripped} version {version}");
+    info!("fetching information for {stripped} version {version}");
 
     let versions: Vec<Version> = ureq::get(&format!("{BASE_URL}{path}"))
         .set("User-Agent", pap::FAKE_USER_AGENT)
@@ -61,7 +62,7 @@ fn get_version(path: &str, version: &str) -> Result<Version, anyhow::Error> {
 fn get_installer() -> Result<Installer, anyhow::Error> {
     let formatted_url = format!("{BASE_URL}/installer");
 
-    println!("Fetching latest installer");
+    info!("fetching latest installer");
 
     let resp: Vec<Installer> = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::anyhow;
+use log::info;
 use pap::download_with_checksum;
 use serde::Deserialize;
 use sha2::Sha256;
@@ -59,7 +60,8 @@ pub fn fetch(minecraft_version: &str, build: &str) -> Result<(), anyhow::Error> 
 }
 
 fn get_latest_version() -> Result<String, anyhow::Error> {
-    println!("Fetching latest Minecraft version");
+    info!("fetching latest Minecraft version");
+
     let body: Versions = ureq::get(BASE_URL)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
@@ -77,7 +79,8 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
 fn get_build(minecraft_version: &str, build: &str) -> Result<Build, anyhow::Error> {
     let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
 
-    println!("Fetching build {build} for {minecraft_version}");
+    info!("fetching build {build} for {minecraft_version}");
+
     let body: Builds = ureq::get(formatted_url.as_str())
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?

@@ -5,11 +5,7 @@ mod forge;
 mod neoforge;
 mod paper;
 
-pub fn fetch(
-    loader: &str,
-    minecraft_version: &str,
-    version: &str,
-) -> Result<(), anyhow::Error> {
+pub fn fetch(loader: &str, minecraft_version: &str, version: &str) -> Result<(), anyhow::Error> {
     match loader {
         "paper" => paper::fetch(minecraft_version, version),
         "fabric" => fabric::fetch(minecraft_version, version),

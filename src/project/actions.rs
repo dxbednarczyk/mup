@@ -3,6 +3,7 @@
 use std::path::PathBuf;
 
 use anyhow::anyhow;
+use log::info;
 use pap::{download_with_checksum, FAKE_USER_AGENT};
 use serde::Deserialize;
 use sha2::Sha512;
@@ -55,7 +56,8 @@ pub fn fetch(
 ) -> Result<(Version, ProjectInfo, ProjectFile, PathBuf), anyhow::Error> {
     let formatted_url = format!("{}/project/{id}", super::BASE_URL);
 
-    println!("Fetching project info for {id}");
+    info!("Fetching project info for {id}");
+
     let project_info: ProjectInfo = ureq::get(&formatted_url)
         .set("User-Agent", FAKE_USER_AGENT)
         .call()?
@@ -190,7 +192,8 @@ fn get_version(
 ) -> Result<Version, anyhow::Error> {
     let formatted_url = format!("{}/version/{version_id}", super::BASE_URL);
 
-    println!("Fetching version {version_id} of {}", project.slug);
+    info!("fetching version {version_id} of {}", project.slug);
+
     let resp: Version = ureq::get(&formatted_url)
         .set("User-Agent", FAKE_USER_AGENT)
         .call()?
@@ -236,7 +239,8 @@ fn get_latest_version(
         req = req.query("loaders", format!("[\"{loader}\"]").as_str());
     }
 
-    println!("Fetching latest version of {}", project.slug);
+    info!("fetching latest version of {}", project.slug);
+
     let resp: Vec<Version> = req.call()?.into_json()?;
 
     let version = resp

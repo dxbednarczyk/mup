@@ -1,6 +1,7 @@
 use std::{fs::File, io, sync::LazyLock};
 
 use anyhow::anyhow;
+use log::{info, warn};
 use serde::Deserialize;
 use versions::Versioning;
 
@@ -43,7 +44,8 @@ pub fn fetch(minecraft_version: &str) -> Result<(), anyhow::Error> {
         format!("{BASE_API_URL}{gav}")
     };
 
-    println!("Fetching latest installer version for Minecraft {minecraft_version}");
+    info!("fetching latest installer version for minecraft {minecraft_version}");
+
     let installer: Installer = ureq::get(&formatted_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?
@@ -56,7 +58,8 @@ pub fn fetch(minecraft_version: &str) -> Result<(), anyhow::Error> {
         installer.version
     );
 
-    println!("Downloading installer jarfile");
+    info!("downloading installer jarfile");
+
     let resp = ureq::get(&installer_url)
         .set("User-Agent", pap::FAKE_USER_AGENT)
         .call()?;
@@ -66,7 +69,7 @@ pub fn fetch(minecraft_version: &str) -> Result<(), anyhow::Error> {
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;
 
-    eprintln!("This is an installer, not a server loader! Please run it and install the server before proceeding.");
+    warn!("this is an installer, not a server loader! please run it and install the server before proceeding.");
 
     Ok(())
 }

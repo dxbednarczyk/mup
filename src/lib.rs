@@ -1,6 +1,7 @@
 use std::{fs::File, io::Write, path::PathBuf};
 
 use anyhow::anyhow;
+use log::info;
 
 pub const FAKE_USER_AGENT: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.3";
@@ -10,7 +11,8 @@ pub fn download_with_checksum<T: sha2::Digest + Write>(
     path: &PathBuf,
     wanted_hash: &str,
 ) -> Result<(), anyhow::Error> {
-    println!("Downloading jarfile from {url}");
+    info!("downloading jarfile from {url}");
+
     let mut resp = ureq::get(url)
         .set("User-Agent", FAKE_USER_AGENT)
         .call()?

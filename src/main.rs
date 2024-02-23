@@ -1,6 +1,8 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 #![feature(lazy_cell)]
 
+use std::env;
+
 use clap::{Parser, Subcommand};
 
 mod loader;
@@ -15,6 +17,9 @@ mod server;
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
+
+    #[arg(short, long, action)]
+    verbose: bool,
 }
 
 #[derive(Debug, Subcommand)]
@@ -45,6 +50,17 @@ enum Commands {
 
 fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
+
+    if cli.verbose {
+        let var = env::var("RUST_LOG");
+        if var.is_err() {
+            env::set_var("RUST_LOG", String::from("info"));
+        } else {
+            env::set_var("RUST_LOG", var? + &String::from(" info"));
+        }
+    }
+
+    pretty_env_logger::init();
 
     match &cli.command {
         Some(Commands::Loader {
