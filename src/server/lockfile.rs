@@ -42,18 +42,12 @@ impl Default for Loader {
 }
 
 impl Loader {
-    pub const VALID_LOADERS: [&'static str; 4] = ["fabric", "forge", "paper", "neoforge"];
-
     pub fn project_path(&self) -> String {
         match self.name.as_str() {
             "fabric" | "forge" => String::from("./mods/"),
             "paper" => String::from("./plugins/"),
             _ => unimplemented!(),
         }
-    }
-
-    pub fn list() {
-        println!("{}", Self::VALID_LOADERS.join(", "));
     }
 }
 

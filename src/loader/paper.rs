@@ -35,7 +35,7 @@ struct Application {
 
 pub fn fetch(minecraft_version: &str, build: &str) -> Result<(), anyhow::Error> {
     let minecraft = if minecraft_version == "latest" {
-        get_latest_version()?.replace('"', "")
+        get_latest_version()?
     } else {
         minecraft_version.to_string()
     };
@@ -71,7 +71,7 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
         .ok_or_else(|| anyhow!("could not get latest minecraft version"))?
         .to_string();
 
-    Ok(latest)
+    Ok(latest.replace('"', ""))
 }
 
 fn get_build(minecraft_version: &str, build: &str) -> Result<Build, anyhow::Error> {

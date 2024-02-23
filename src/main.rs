@@ -2,7 +2,6 @@
 #![feature(lazy_cell)]
 
 use clap::{Parser, Subcommand};
-use server::lockfile;
 
 mod loader;
 mod project;
@@ -23,8 +22,8 @@ enum Commands {
     /// Download a modloader jarfile
     Loader {
         /// Name of the loader to download
-        #[arg(value_name = "loader")]
-        name: Option<String>,
+        #[arg(value_name = "loader", value_parser = ["fabric", "forge", "paper", "neoforge"])]
+        name: String,
 
         /// Minecraft version to target
         #[arg(short, long, default_value = "latest")]
@@ -33,10 +32,6 @@ enum Commands {
         /// Loader version to target
         #[arg(short, long, default_value = "latest")]
         version: String,
-
-        /// List all valid loaders
-        #[arg(short, long, action)]
-        list: bool,
     },
 
     /// Work with Modrinth plugins and mods
@@ -56,14 +51,7 @@ fn main() -> Result<(), anyhow::Error> {
             name,
             minecraft_version,
             version,
-            list,
-        }) => {
-            if *list {
-                lockfile::Loader::list();
-            } else {
-                loader::fetch(name.as_ref(), minecraft_version, version)?;
-            }
-        }
+        }) => loader::fetch(name, minecraft_version, version)?,
         Some(Commands::Project(p)) => project::action(p)?,
         Some(Commands::Server(s)) => server::action(s)?,
         None => (),
