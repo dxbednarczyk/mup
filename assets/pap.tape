@@ -60,7 +60,7 @@ Output pap.mp4
 Require pap
 
 Set Shell "bash"
-Set FontSize 24
+Set FontSize 18
 Set Width 1200
 Set Height 600
 
@@ -78,7 +78,7 @@ Sleep 1s
 
 Type "pap server init --minecraft-version 1.20.4 --loader fabric"
 Enter
-Sleep 3s
+Sleep 5s
 
 Type "# Then, add the plugins / mods you want:" 
 Enter
@@ -106,11 +106,11 @@ Sleep 5s
 Ctrl+C
 Ctrl+L
 
-Type "# If you already have a server and want to host it on a different machine, pap can do that too!"
+Type "# If you already have a server and want to move it to a different machine, pap can do that!"
 Enter
 Sleep 1s
 
-Type "# Let's just use the server we just set up as an example:"
+Type "# Let's use the server we just set up as an example:"
 Enter
 Sleep 1s
 
@@ -122,7 +122,19 @@ Type "cp ../pap.lock ."
 Enter
 Sleep 1s
 
-Type "pap server install"
+Type "# To see what pap is doing under the hood, use the --verbose flag"
+Enter
+Sleep 1s
+
+Type "pap --verbose server install"
+Enter
+Sleep 5s
+
+Type "# pap can also update existing dependencies.
+Enter
+Sleep 1s
+
+Type "pap project update"
 Enter
 Sleep 5s
 

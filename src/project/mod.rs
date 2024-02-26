@@ -54,7 +54,7 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
             no_deps,
         } => actions::add(&mut lf, id, version_id.as_ref(), *optional_deps, *no_deps)?,
         Project::Remove { id, keep_jarfile } => actions::remove(&mut lf, id, *keep_jarfile)?,
-        Project::Update => actions::update(&mut lf)?,
+        Project::Update => actions::update(&mut lf),
     }
 
     Ok(())

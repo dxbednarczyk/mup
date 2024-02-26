@@ -4,13 +4,6 @@ This is a spiritual successor to the original, now abandoned (?) [pap](https://g
 
 The current MSRV is the latest nightly toolchain.
 
-## Why `pap`?
-
-Instead of browsing for server modpacks, or even downloading mods and server jarfiles them one-by-one,
-`pap` can set up a server from scratch in just a few commands. Here's a video example:
-
-https://github.com/dxbednarczyk/pap-ng/assets/54457902/1a0c8266-cbf8-48b1-bec8-aa04f1f0eb5d
-
 ## Goals
 - [x] Easily set up a new Minecraft server from scratch, including mod and plugin support
 - [x] Produce easily reproducible, portable server configuration
