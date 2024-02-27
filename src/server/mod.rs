@@ -72,7 +72,7 @@ fn install() -> Result<(), anyhow::Error> {
     )?;
 
     for entry in &lf.project {
-        _ = project::actions::fetch(&lf, &entry.slug, Some(entry.installed_version.clone()))?;
+        _ = project::actions::fetch(&lf, &entry.slug, Some(entry.version_id.clone()))?;
     }
 
     eula::sign()?;

@@ -1,13 +1,12 @@
 #![allow(clippy::case_sensitive_file_extension_comparisons)]
 
-use std::{cmp::Ordering, fs, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::anyhow;
-use log::{error, info, warn};
+use log::info;
 use pap::{download_with_checksum, FAKE_USER_AGENT};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::Sha512;
-use versions::Versioning;
 
 use crate::server::lockfile::Lockfile;
 
@@ -19,13 +18,11 @@ pub struct Version {
     loaders: Vec<String>,
     pub id: String,
     files: Vec<ProjectFile>,
-    dependencies: Vec<Dependency>,
-    #[serde(rename = "version_number")]
-    pub number: String,
+    pub dependencies: Vec<Dependency>,
     project_id: String,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Dependency {
     pub project_id: String,
     pub dependency_type: String,
@@ -154,95 +151,11 @@ pub fn add(
             &dep.project_id,
             Some(&String::from("latest")),
             false,
-            true,
+            false,
         )?;
     }
 
     Ok(())
-}
-
-pub fn remove(lockfile: &mut Lockfile, id: &str, keep_jarfile: bool) -> Result<(), anyhow::Error> {
-    if lockfile.get(id).is_err() {
-        return Err(anyhow!("project {id} does not exist in the lockfile"));
-    }
-
-    lockfile.remove(id, keep_jarfile)?;
-
-    Ok(())
-}
-
-pub fn update(lockfile: &mut Lockfile) {
-    for dep in &mut lockfile.project {
-        let Ok(latest) = get_latest_version(
-            &dep.slug,
-            &lockfile.loader.minecraft_version,
-            &lockfile.loader.name,
-        ) else {
-            error!("failed to get latest version of {}", dep.slug);
-            return;
-        };
-
-        let latest_version = Versioning::new(&latest.number).unwrap();
-        let current_version = Versioning::new(&dep.version_number).unwrap();
-
-        match current_version.cmp(&latest_version) {
-            Ordering::Equal => continue,
-            Ordering::Greater => {
-                warn!("version mismatch: current version is higher than latest modrinth version");
-                return;
-            }
-            Ordering::Less => (),
-        }
-
-        let semver_error = format!(
-            "cannot compare versions for {}: versioning scheme is not semver",
-            dep.slug
-        );
-
-        let incompatible_error = |current: u32, latest: u32, version_type: &str| {
-            format!(
-                "potentially incompatible upgrade for {}: {version_type} version {current} to {latest}, not updating", dep.slug
-            )
-        };
-
-        if let Versioning::Ideal(current) = current_version {
-            let Versioning::Ideal(latest) = latest_version else {
-                error!("{semver_error}");
-                return;
-            };
-
-            if latest.major > current.major {
-                warn!(
-                    "{}",
-                    incompatible_error(current.major, latest.major, "major")
-                );
-                return;
-            }
-
-            if latest.minor > current.minor && current.major == 0 {
-                warn!(
-                    "{}",
-                    incompatible_error(current.minor, latest.minor, "minor with major version 0",)
-                );
-                return;
-            }
-        } else {
-            error!("{}", semver_error);
-            return;
-        };
-
-        let (project_file, path) = save(&lockfile.loader.project_path(), &latest).unwrap();
-
-        fs::remove_file(dep.path.clone()).unwrap();
-
-        dep.installed_version = latest.id;
-        dep.version_number = latest.number;
-        dep.path = path;
-        dep.remote_url = project_file.url;
-        dep.sha512 = project_file.hashes.sha512;
-    }
-
-    lockfile.save().unwrap();
 }
 
 fn save(project_path: &str, version: &Version) -> Result<(ProjectFile, PathBuf), anyhow::Error> {

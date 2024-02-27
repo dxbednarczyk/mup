@@ -51,14 +51,14 @@ impl Loader {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Entry {
     pub slug: String,
-    pub installed_version: String,
-    pub version_number: String,
+    pub version_id: String,
     pub path: PathBuf,
-    pub remote_url: String,
+    pub remote: String,
     pub sha512: String,
+    pub requires: Vec<actions::Dependency>,
 }
 
 impl Lockfile {
@@ -125,11 +125,11 @@ impl Lockfile {
     ) -> Result<(), anyhow::Error> {
         let entry = Entry {
             slug: project.slug.clone(),
-            installed_version: version.id.clone(),
-            version_number: version.number.clone(),
+            version_id: version.id.clone(),
             path,
-            remote_url: project_file.url.clone(),
+            remote: project_file.url.clone(),
             sha512: project_file.hashes.sha512.clone(),
+            requires: version.dependencies.clone(),
         };
 
         self.project.push(entry);
@@ -139,18 +139,62 @@ impl Lockfile {
         Ok(())
     }
 
-    pub fn remove(&mut self, slug: &str, keep_jarfile: bool) -> Result<(), anyhow::Error> {
-        let entry = self
-            .project
-            .iter()
+    pub fn remove(
+        &mut self,
+        slug: &str,
+        keep_jarfile: bool,
+        remove_orphans: bool,
+    ) -> Result<(), anyhow::Error> {
+        if self.get(slug).is_err() {
+            return Err(anyhow!("project {slug} does not exist in the lockfile"));
+        }
+
+        let mut projects = self.project.iter();
+        let mut to_remove = vec![];
+
+        let idx = projects
             .position(|p| p.slug == slug)
             .ok_or_else(|| anyhow!("{slug} does not exist in the lockfile"))?;
 
-        if !keep_jarfile {
-            fs::remove_file(&self.project[entry].path)?;
+        let entry = self.project[idx].clone();
+
+        to_remove.push(entry.slug);
+
+        if remove_orphans {
+            for dep in entry.requires {
+                let cant_be_removed = projects.any(|p| {
+                    if p.slug == slug {
+                        return false;
+                    }
+
+                    let contains = p.requires.iter().find(|d| d.project_id == dep.project_id);
+
+                    if contains.is_none() {
+                        return false;
+                    }
+
+                    contains.unwrap().dependency_type.as_str() == "required"
+                });
+
+                if !cant_be_removed {
+                    to_remove.push(dep.project_id);
+                }
+            }
         }
 
-        self.project.remove(entry);
+        for slug in to_remove {
+            let idx = self
+                .project
+                .iter()
+                .position(|p| p.slug == slug)
+                .ok_or_else(|| anyhow!("{slug} does not exist in the lockfile"))?;
+
+            if !keep_jarfile {
+                fs::remove_file(&self.project[idx].path)?;
+            }
+
+            self.project.remove(idx);
+        }
 
         self.save()?;
 

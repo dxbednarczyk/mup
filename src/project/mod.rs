@@ -32,9 +32,11 @@ pub enum Project {
         /// Keep the downloaded jarfile
         #[arg(long, action)]
         keep_jarfile: bool,
+
+        /// Remove orphans (dependencies which are not required by anything after removal)
+        #[arg(long, action)]
+        remove_orphans: bool,
     },
-    /// Update all mods or plogins
-    Update,
 }
 
 pub fn action(project: &Project) -> Result<(), anyhow::Error> {
@@ -53,8 +55,11 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
             optional_deps,
             no_deps,
         } => actions::add(&mut lf, id, version_id.as_ref(), *optional_deps, *no_deps)?,
-        Project::Remove { id, keep_jarfile } => actions::remove(&mut lf, id, *keep_jarfile)?,
-        Project::Update => actions::update(&mut lf),
+        Project::Remove {
+            id,
+            keep_jarfile,
+            remove_orphans,
+        } => lf.remove(id, *keep_jarfile, *remove_orphans)?,
     }
 
     Ok(())

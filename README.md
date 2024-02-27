@@ -9,7 +9,7 @@ The current MSRV is the latest nightly toolchain.
 - [x] Produce easily reproducible, portable server configuration
     - [x] Lockfile with detailed information on installed mods
     - [x] Support for installing lockfile dependencies
-    - [x] Support for updating lockfile dependencies
+    - [ ] Support for updating lockfile dependencies
 
 ✅ Be an all-in-one tool that keeps it simple, stupid!
 
