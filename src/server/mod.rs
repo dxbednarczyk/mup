@@ -6,7 +6,7 @@ pub mod lockfile;
 
 use lockfile::Lockfile;
 
-use crate::{loader, project};
+use crate::{loader, project::actions};
 
 #[derive(Debug, Subcommand)]
 pub enum Server {
@@ -72,7 +72,7 @@ fn install() -> Result<(), anyhow::Error> {
     )?;
 
     for entry in &lf.projects {
-        _ = project::actions::fetch(&lf, &entry.slug, Some(entry.version_id.clone()))?;
+        actions::fetch(&lf, &entry.slug, Some(&entry.version_id))?;
     }
 
     eula::sign()?;

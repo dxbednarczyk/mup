@@ -54,7 +54,13 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
             version_id,
             optional_deps,
             no_deps,
-        } => actions::add(&mut lf, id, version_id.as_ref(), *optional_deps, *no_deps)?,
+        } => actions::add(
+            &mut lf,
+            id,
+            version_id.as_ref().map(std::string::String::as_str),
+            *optional_deps,
+            *no_deps,
+        )?,
         Project::Remove {
             id,
             keep_jarfile,

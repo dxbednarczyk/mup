@@ -8,6 +8,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use log::info;
 use serde::{Deserialize, Serialize};
 use versions::Versioning;
 
@@ -209,6 +210,8 @@ impl Lockfile {
     }
 
     pub fn save(&mut self) -> Result<(), anyhow::Error> {
+        info!("saving transaction to lockfile");
+
         let mut output = fs::OpenOptions::new()
             .write(true)
             .truncate(true)

@@ -53,7 +53,7 @@ pub struct ProjectInfo {
 pub fn fetch(
     lockfile: &Lockfile,
     id: &str,
-    version_input: Option<String>,
+    version_input: Option<&str>,
 ) -> Result<(Version, ProjectInfo, ProjectFile, PathBuf), anyhow::Error> {
     let formatted_url = format!("{BASE_URL}/project/{id}");
 
@@ -66,7 +66,7 @@ pub fn fetch(
 
     if project_info.server_side == "unsupported" {
         warn!("project {id} does not support server side, skipping");
-        return Err(anyhow!("client side"))
+        return Err(anyhow!("client side"));
     }
 
     if !project_info.loaders.contains(&lockfile.loader.name) {
@@ -87,7 +87,7 @@ pub fn fetch(
     }
 
     let version = version_input.unwrap();
-    if version.as_str() != "latest" && !project_info.versions.contains(&version) {
+    if version != "latest" && !project_info.versions.contains(&version.to_string()) {
         return Err(anyhow!("project version {version} does not exist"));
     }
 
@@ -101,7 +101,7 @@ pub fn fetch(
         ));
     }
 
-    let version_info = if version.as_str() == "latest" {
+    let version_info = if version == "latest" {
         get_latest_version(
             &project_info.slug,
             &lockfile.loader.minecraft_version,
@@ -110,7 +110,7 @@ pub fn fetch(
     } else {
         get_version(
             &project_info,
-            &version,
+            version,
             &lockfile.loader.minecraft_version,
             &lockfile.loader.name,
         )?
@@ -124,7 +124,7 @@ pub fn fetch(
 pub fn add(
     lockfile: &mut Lockfile,
     id: &str,
-    version_input: Option<&String>,
+    version_input: Option<&str>,
     optional_deps: bool,
     no_deps: bool,
 ) -> Result<(), anyhow::Error> {
@@ -133,19 +133,14 @@ pub fn add(
         return Ok(());
     }
 
-    let (mut version_info, project_info, file, save_to) = {
-        let fetched = fetch(lockfile, id, version_input.cloned());
-
-        if fetched.is_ok() {
-            fetched.unwrap()
-        } else {
-            let error = fetched.err().unwrap();
-
-            if &error.to_string() == "client_side" {
-                return Ok(())
-            } else {
-                return Err(error)
+    let (mut version_info, project_info, file, save_to) = match fetch(lockfile, id, version_input) {
+        Ok(r) => r,
+        Err(e) => {
+            if e.to_string() == "client_side" {
+                return Ok(());
             }
+
+            return Err(e);
         }
     };
 
@@ -170,13 +165,7 @@ pub fn add(
     lockfile.add(&version_info, &project_info.slug, &file, save_to)?;
 
     for dep in version_info.dependencies {
-        add(
-            lockfile,
-            &dep.project_id,
-            Some(&String::from("latest")),
-            false,
-            false,
-        )?;
+        add(lockfile, &dep.project_id, Some("latest"), false, false)?;
     }
 
     Ok(())
