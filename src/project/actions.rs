@@ -65,7 +65,8 @@ pub fn fetch(
         .into_json()?;
 
     if project_info.server_side == "unsupported" {
-        warn!("project {id} does not support server side");
+        warn!("project {id} does not support server side, skipping");
+        return Err(anyhow!("client side"))
     }
 
     if !project_info.loaders.contains(&lockfile.loader.name) {
@@ -132,8 +133,21 @@ pub fn add(
         return Ok(());
     }
 
-    let (mut version_info, project_info, file, save_to) =
-        fetch(lockfile, id, version_input.cloned())?;
+    let (mut version_info, project_info, file, save_to) = {
+        let fetched = fetch(lockfile, id, version_input.cloned());
+
+        if fetched.is_ok() {
+            fetched.unwrap()
+        } else {
+            let error = fetched.err().unwrap();
+
+            if &error.to_string() == "client_side" {
+                return Ok(())
+            } else {
+                return Err(error)
+            }
+        }
+    };
 
     if no_deps {
         version_info.dependencies.clear();
