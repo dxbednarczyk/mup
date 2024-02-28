@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use anyhow::anyhow;
-use log::info;
+use log::{info, warn};
 use pap::{download_with_checksum, FAKE_USER_AGENT};
 use serde::{Deserialize, Serialize};
 use sha2::Sha512;
@@ -17,9 +17,9 @@ pub struct Version {
     game_versions: Vec<String>,
     loaders: Vec<String>,
     pub id: String,
+    pub project_id: String,
     files: Vec<ProjectFile>,
     pub dependencies: Vec<Dependency>,
-    project_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -65,7 +65,7 @@ pub fn fetch(
         .into_json()?;
 
     if project_info.server_side == "unsupported" {
-        return Err(anyhow!("project {id} does not support server side"));
+        warn!("project {id} does not support server side");
     }
 
     if !project_info.loaders.contains(&lockfile.loader.name) {
@@ -127,25 +127,35 @@ pub fn add(
     optional_deps: bool,
     no_deps: bool,
 ) -> Result<(), anyhow::Error> {
-    if lockfile.get(id).is_ok() {
-        return Err(anyhow!(
-            "specified project already has an entry in the lockfile"
-        ));
-    }
-
-    let (version_info, project_info, file, save_to) = fetch(lockfile, id, version_input.cloned())?;
-
-    lockfile.add(&version_info, &project_info, &file, save_to)?;
-
-    if no_deps {
+    if lockfile.get(id).is_ok() || lockfile.projects.iter().any(|p| p.project_id == id) {
+        warn!("project id {id} already has an entry in the lockfile, skipping");
         return Ok(());
     }
 
-    for dep in version_info.dependencies {
-        if dep.dependency_type.as_str() == "optional" && !optional_deps {
-            continue;
-        }
+    let (mut version_info, project_info, file, save_to) =
+        fetch(lockfile, id, version_input.cloned())?;
 
+    if no_deps {
+        version_info.dependencies.clear();
+    }
+
+    if !optional_deps {
+        version_info.dependencies = version_info
+            .dependencies
+            .iter()
+            .filter_map(|d| {
+                if d.dependency_type.as_str() == "required" {
+                    Some(d.to_owned())
+                } else {
+                    None
+                }
+            })
+            .collect();
+    }
+
+    lockfile.add(&version_info, &project_info.slug, &file, save_to)?;
+
+    for dep in version_info.dependencies {
         add(
             lockfile,
             &dep.project_id,

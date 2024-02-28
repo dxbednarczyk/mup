@@ -71,7 +71,7 @@ fn install() -> Result<(), anyhow::Error> {
         &lf.loader.version,
     )?;
 
-    for entry in &lf.project {
+    for entry in &lf.projects {
         _ = project::actions::fetch(&lf, &entry.slug, Some(entry.version_id.clone()))?;
     }
 
