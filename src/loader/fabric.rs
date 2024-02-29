@@ -69,8 +69,7 @@ fn get_installer() -> Result<Installer, anyhow::Error> {
         .call()?
         .into_json()?;
 
-    return resp
-        .first()
+    resp.first()
         .ok_or_else(|| anyhow!("failed to retrieve latest installer"))
-        .cloned();
+        .cloned()
 }
