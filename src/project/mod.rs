@@ -57,7 +57,7 @@ pub fn action(project: &Project) -> Result<(), anyhow::Error> {
         } => actions::add(
             &mut lf,
             id,
-            version_id.as_ref().map(std::string::String::as_str),
+            version_id.as_ref().map(String::as_str),
             *optional_deps,
             *no_deps,
         )?,

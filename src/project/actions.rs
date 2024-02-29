@@ -149,7 +149,7 @@ pub fn add(
     let (mut version, project_info, project_file) = match fetch(lockfile, id, version_input) {
         Ok(r) => r,
         Err(e) => {
-            if e.to_string() == "client_side" {
+            if e.to_string() == "client side" {
                 return Ok(());
             }
 
