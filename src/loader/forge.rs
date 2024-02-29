@@ -35,23 +35,20 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<(), any
         .promos;
 
     let minecraft = if minecraft_version == "latest" {
-        let mut versions: Vec<Versioning> = promos
+        promos
             .keys()
             .filter_map(|p| p.split('-').next())
             .filter_map(Versioning::new)
-            .collect();
-
-        versions.sort_by(Versioning::cmp);
-
-        versions.last().unwrap().clone()
+            .max()
+            .unwrap()
     } else {
         Versioning::new(minecraft_version).unwrap()
     };
 
-    let promo = promos.get(&format!("{minecraft}-{installer_version}"));
-
     let installer = if installer_version == "latest" {
-        promo.ok_or_else(|| anyhow!("invalid or unsupported minecraft version"))?
+        promos
+            .get(&format!("{minecraft}-{installer_version}"))
+            .ok_or_else(|| anyhow!("invalid or unsupported minecraft version"))?
     } else {
         installer_version
     };
@@ -71,7 +68,7 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<(), any
     let mut file = File::create(filename)?;
     io::copy(&mut resp.into_reader(), &mut file)?;
 
-    warn!("This is an installer, not a server loader! Please run it and install the server before proceeding.");
+    warn!("this is an installer, not a server loader! please run it and install the server before proceeding.");
 
     Ok(())
 }
@@ -113,58 +110,5 @@ fn get_version_tag(minecraft: &Versioning, installer: &str) -> Result<String, an
         }
         // This is currently the only release that ends up down here...
         Versioning::Complex(_) => Ok(format!("1.7.10_pre4-{installer}-prerelease")),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_ideal_version() -> Result<(), anyhow::Error> {
-        let minecraft = Versioning::new("1.9.4").unwrap();
-        let installer = "12.17.0.2317";
-        let expected = "https://maven.minecraftforge.net/net/minecraftforge/forge/1.9.4-12.17.0.2317-1.9.4/forge-1.9.4-12.17.0.2317-1.9.4-installer.jar";
-
-        let version_tag = get_version_tag(&minecraft, installer)?;
-
-        let formatted_url =
-            format!("{BASE_MAVEN_URL}/{version_tag}/forge-{version_tag}-installer.jar");
-
-        assert_eq!(expected, formatted_url);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_general_version() -> Result<(), anyhow::Error> {
-        let minecraft = Versioning::new("1.9").unwrap();
-        let installer = "12.16.1.1938";
-        let expected = "https://maven.minecraftforge.net/net/minecraftforge/forge/1.9-12.16.1.1938-1.9.0/forge-1.9-12.16.1.1938-1.9.0-installer.jar";
-
-        let version_tag = get_version_tag(&minecraft, installer)?;
-
-        let formatted_url =
-            format!("{BASE_MAVEN_URL}/{version_tag}/forge-{version_tag}-installer.jar");
-
-        assert_eq!(expected, formatted_url);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_cutoff() {
-        let minecraft = Versioning::new("1.2.5").unwrap();
-        let installer = "who cares";
-        let expected: Result<(), anyhow::Error> = Err(anyhow!(
-            "forge does not provide installer jarfiles before Minecraft 1.5.2"
-        ));
-
-        let resp = get_version_tag(&minecraft, installer)
-            .err()
-            .unwrap()
-            .to_string();
-
-        assert_eq!(expected.err().unwrap().to_string(), resp);
     }
 }

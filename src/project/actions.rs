@@ -28,11 +28,23 @@ pub struct Dependency {
     pub dependency_type: String,
 }
 
+impl Dependency {
+    fn required(&self) -> Option<Self> {
+        if self.dependency_type.as_str() == "required" {
+            return Some(self.to_owned());
+        }
+
+        None
+    }
+}
+
 #[derive(Clone, Deserialize)]
 pub struct ProjectFile {
     pub hashes: Hashes,
     pub url: String,
     pub filename: String,
+    #[serde(skip)]
+    pub path: PathBuf,
 }
 
 #[derive(Clone, Deserialize)]
@@ -54,7 +66,7 @@ pub fn fetch(
     lockfile: &Lockfile,
     id: &str,
     version_input: Option<&str>,
-) -> Result<(Version, ProjectInfo, ProjectFile, PathBuf), anyhow::Error> {
+) -> Result<(Version, ProjectInfo, ProjectFile), anyhow::Error> {
     let formatted_url = format!("{BASE_URL}/project/{id}");
 
     info!("Fetching project info for {id}");
@@ -108,7 +120,7 @@ pub fn fetch(
             &lockfile.loader.name,
         )?
     } else {
-        get_version(
+        get_specific_version(
             &project_info,
             version,
             &lockfile.loader.minecraft_version,
@@ -116,9 +128,9 @@ pub fn fetch(
         )?
     };
 
-    let (project_file, save_to) = save(&lockfile.loader.project_path(), &version_info)?;
+    let project_file = save(&lockfile.loader.project_path(), &version_info)?;
 
-    Ok((version_info, project_info, project_file, save_to))
+    Ok((version_info, project_info, project_file))
 }
 
 pub fn add(
@@ -130,10 +142,11 @@ pub fn add(
 ) -> Result<(), anyhow::Error> {
     if lockfile.get(id).is_ok() || lockfile.projects.iter().any(|p| p.project_id == id) {
         warn!("project id {id} already has an entry in the lockfile, skipping");
+
         return Ok(());
     }
 
-    let (mut version_info, project_info, file, save_to) = match fetch(lockfile, id, version_input) {
+    let (mut version, project_info, project_file) = match fetch(lockfile, id, version_input) {
         Ok(r) => r,
         Err(e) => {
             if e.to_string() == "client_side" {
@@ -145,33 +158,27 @@ pub fn add(
     };
 
     if no_deps {
-        version_info.dependencies.clear();
+        version.dependencies.clear();
     }
 
     if !optional_deps {
-        version_info.dependencies = version_info
+        version.dependencies = version
             .dependencies
             .iter()
-            .filter_map(|d| {
-                if d.dependency_type.as_str() == "required" {
-                    Some(d.to_owned())
-                } else {
-                    None
-                }
-            })
+            .filter_map(Dependency::required)
             .collect();
     }
 
-    lockfile.add(&version_info, &project_info.slug, &file, save_to)?;
+    lockfile.add(&version, &project_info.slug, &project_file)?;
 
-    for dep in version_info.dependencies {
+    for dep in version.dependencies {
         add(lockfile, &dep.project_id, Some("latest"), false, false)?;
     }
 
     Ok(())
 }
 
-fn save(project_path: &str, version: &Version) -> Result<(ProjectFile, PathBuf), anyhow::Error> {
+fn save(project_path: &str, version: &Version) -> Result<ProjectFile, anyhow::Error> {
     let project_file: &ProjectFile = version
         .files
         .iter()
@@ -182,10 +189,10 @@ fn save(project_path: &str, version: &Version) -> Result<(ProjectFile, PathBuf),
 
     download_with_checksum::<Sha512>(&project_file.url, &save_to, &project_file.hashes.sha512)?;
 
-    Ok((project_file.clone(), save_to))
+    Ok(project_file.clone())
 }
 
-fn get_version(
+fn get_specific_version(
     project: &ProjectInfo,
     version_id: &str,
     minecraft_input: &String,

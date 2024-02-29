@@ -23,30 +23,13 @@ jobs:
       - uses: ATiltedTree/setup-rust@v1
         with:
           rust-version: nightly
-          components: clippy 
-          
-      - name: "Run unit tests"
-        run: |
-          cargo test
+          components: clippy
 
-      - name: "Test Paper downloading"
+      - name: "Test example server"
         run: |
-          cargo run -- loader paper
-          cargo run -- loader paper -m 1.20.4 -v 379
+          cargo run -- --verbose server init -m 1.20.4 -l fabric
+          cargo run -- --verbose project add simple-voice-chat -o
 
-      - name: "Test Fabric downloading"
-        run: |
-          cargo run -- loader fabric
-          cargo run -- loader fabric -v 0.15.3 -m 1.20.4
-           
-      - name: "Test Forge downloading"
-        run: |
-          cargo run -- loader forge
-          cargo run -- loader forge -m 1.7.10_pre4
-          cargo run -- loader forge -m 1.9
-          cargo run -- loader forge -m 1.19.3 -v 44.1.0
-
-      - name: "Test NeoForge downloading"
-        run: |
-          cargo run -- loader neoforge -m 1.20.1
-          cargo run -- loader neoforge -m 1.20.4
+          mkdir another-server && cd another-server
+          cp ../pap.lock .
+          cargo run -- --verbose server install

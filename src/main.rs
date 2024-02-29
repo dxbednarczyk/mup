@@ -52,12 +52,7 @@ fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
 
     if cli.verbose {
-        let var = env::var("RUST_LOG");
-        if var.is_err() {
-            env::set_var("RUST_LOG", String::from("info"));
-        } else {
-            env::set_var("RUST_LOG", var? + &String::from(" info"));
-        }
+        env::set_var("RUST_LOG", String::from("info"));
     }
 
     pretty_env_logger::init();

@@ -120,13 +120,12 @@ impl Lockfile {
         version: &actions::Version,
         slug: &str,
         project_file: &actions::ProjectFile,
-        path: PathBuf,
     ) -> Result<(), anyhow::Error> {
         let entry = Entry {
             slug: slug.to_string(),
             project_id: version.project_id.clone(),
             version_id: version.id.clone(),
-            path,
+            path: project_file.path.clone(),
             remote: project_file.url.clone(),
             sha512: project_file.hashes.sha512.clone(),
             requires: version
