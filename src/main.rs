@@ -9,6 +9,8 @@ mod loader;
 mod project;
 mod server;
 
+use anyhow::Result;
+
 #[derive(Debug, Parser)]
 #[command(author = "Damian Bednarczyk <damian@bednarczyk.xyz>")]
 #[command(version = "0.1.0")]
@@ -48,7 +50,7 @@ enum Commands {
     Server(server::Server),
 }
 
-fn main() -> Result<(), anyhow::Error> {
+fn main() -> Result<()> {
     let cli = Cli::parse();
 
     if cli.verbose {

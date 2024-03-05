@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use log::{info, warn};
 use pap::{download_with_checksum, FAKE_USER_AGENT};
 use serde::{Deserialize, Serialize};
@@ -66,7 +66,7 @@ pub fn fetch(
     lockfile: &Lockfile,
     id: &str,
     version_input: Option<&str>,
-) -> Result<(Version, ProjectInfo, ProjectFile), anyhow::Error> {
+) -> Result<(Version, ProjectInfo, ProjectFile)> {
     let formatted_url = format!("{BASE_URL}/project/{id}");
 
     info!("Fetching project info for {id}");
@@ -139,7 +139,7 @@ pub fn add(
     version_input: Option<&str>,
     optional_deps: bool,
     no_deps: bool,
-) -> Result<(), anyhow::Error> {
+) -> Result<()> {
     if lockfile.get(id).is_ok() || lockfile.projects.iter().any(|p| p.project_id == id) {
         warn!("project id {id} already has an entry in the lockfile, skipping");
 
@@ -178,7 +178,7 @@ pub fn add(
     Ok(())
 }
 
-fn save(project_path: &str, version: &Version) -> Result<ProjectFile, anyhow::Error> {
+fn save(project_path: &str, version: &Version) -> Result<ProjectFile> {
     let project_file: &ProjectFile = version
         .files
         .iter()
@@ -197,7 +197,7 @@ fn get_specific_version(
     version_id: &str,
     minecraft_input: &String,
     loader: &String,
-) -> Result<Version, anyhow::Error> {
+) -> Result<Version> {
     let formatted_url = format!("{BASE_URL}/version/{version_id}");
 
     info!("fetching version {version_id} of {}", project.slug);
@@ -229,11 +229,7 @@ fn get_specific_version(
     Ok(resp)
 }
 
-fn get_latest_version(
-    slug: &str,
-    minecraft_version: &String,
-    loader: &String,
-) -> Result<Version, anyhow::Error> {
+fn get_latest_version(slug: &str, minecraft_version: &String, loader: &String) -> Result<Version> {
     let formatted_url = format!("{BASE_URL}/project/{slug}/version");
 
     let mut req = ureq::get(&formatted_url)

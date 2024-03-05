@@ -3,7 +3,9 @@ use std::{
     io::Write,
 };
 
-pub fn sign() -> Result<(), anyhow::Error> {
+use anyhow::Result;
+
+pub fn sign() -> Result<()> {
     let mut file = if fs::metadata("eula.txt").is_err() {
         File::create("eula.txt")?
     } else {

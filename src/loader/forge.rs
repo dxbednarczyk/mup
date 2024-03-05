@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs::File, io, sync::LazyLock};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use log::{info, warn};
 use serde::Deserialize;
 use versions::Versioning;
@@ -25,7 +25,7 @@ struct PromosResponse {
     promos: HashMap<String, String>,
 }
 
-pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<(), anyhow::Error> {
+pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<()> {
     info!("fetching promos");
 
     let promos = ureq::get(PROMOS_URL)
@@ -73,7 +73,7 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<(), any
     Ok(())
 }
 
-fn get_version_tag(minecraft: &Versioning, installer: &str) -> Result<String, anyhow::Error> {
+fn get_version_tag(minecraft: &Versioning, installer: &str) -> Result<String> {
     if minecraft < &MINECRAFT_CUTOFF {
         return Err(anyhow!(
             "forge does not provide installer jarfiles before Minecraft 1.5.2"

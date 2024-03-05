@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 
 mod fabric;
 mod forge;
@@ -7,7 +7,7 @@ mod paper;
 
 const VALID_LOADERS: [&str; 4] = ["fabric", "forge", "paper", "neoforge"];
 
-pub fn fetch(loader: &str, minecraft_version: &str, version: &str) -> Result<(), anyhow::Error> {
+pub fn fetch(loader: &str, minecraft_version: &str, version: &str) -> Result<()> {
     match loader {
         "paper" => paper::fetch(minecraft_version, version),
         "fabric" => fabric::fetch(minecraft_version, version),
@@ -17,7 +17,7 @@ pub fn fetch(loader: &str, minecraft_version: &str, version: &str) -> Result<(),
     }
 }
 
-pub fn parse(input: &str) -> Result<String, anyhow::Error> {
+pub fn parse(input: &str) -> Result<String> {
     if !VALID_LOADERS.contains(&input) {
         return Err(anyhow!("try one of {VALID_LOADERS:?}"));
     }

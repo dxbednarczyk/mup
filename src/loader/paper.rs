@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use log::info;
 use pap::download_with_checksum;
 use serde::Deserialize;
@@ -34,7 +34,7 @@ struct Application {
     sha256: String,
 }
 
-pub fn fetch(minecraft_version: &str, build: &str) -> Result<(), anyhow::Error> {
+pub fn fetch(minecraft_version: &str, build: &str) -> Result<()> {
     let minecraft = if minecraft_version == "latest" {
         get_latest_version()?
     } else {
@@ -76,7 +76,7 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
     Ok(latest.replace('"', ""))
 }
 
-fn get_build(minecraft_version: &str, build: &str) -> Result<Build, anyhow::Error> {
+fn get_build(minecraft_version: &str, build: &str) -> Result<Build> {
     let formatted_url = format!("{BASE_URL}/versions/{minecraft_version}/builds");
 
     info!("fetching build {build} for {minecraft_version}");

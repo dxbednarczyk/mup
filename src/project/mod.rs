@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use clap::Subcommand;
 
 use crate::server::lockfile::Lockfile;
@@ -39,7 +39,7 @@ pub enum Project {
     },
 }
 
-pub fn action(project: &Project) -> Result<(), anyhow::Error> {
+pub fn action(project: &Project) -> Result<()> {
     let mut lf = Lockfile::init()?;
 
     if !lf.is_initialized() {

@@ -1,6 +1,6 @@
 use std::{fs::File, io};
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use log::info;
 use serde::Deserialize;
 
@@ -11,15 +11,23 @@ struct Version {
     version: String,
 }
 
-#[derive(Clone, Deserialize)]
-struct Installer {
-    pub version: String,
-}
-
-pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<(), anyhow::Error> {
+pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<()> {
     let game = get_version("/game", minecraft_version)?.version;
     let loader = get_version("/loader", loader_version)?.version;
-    let installer = get_installer()?.version;
+
+    let formatted_url = format!("{BASE_URL}/installer");
+
+    info!("fetching latest installer");
+
+    let resp: Vec<Version> = ureq::get(&formatted_url)
+        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .call()?
+        .into_json()?;
+
+    let installer = &resp
+        .first()
+        .ok_or_else(|| anyhow!("failed to retrieve latest installer"))?
+        .version;
 
     let formatted_url = format!("{BASE_URL}/loader/{game}/{loader}/{installer}/server/jar");
 
@@ -35,7 +43,7 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<(), anyhow
     Ok(())
 }
 
-fn get_version(path: &str, version: &str) -> Result<Version, anyhow::Error> {
+fn get_version(path: &str, version: &str) -> Result<Version> {
     let stripped = path.strip_prefix('/').unwrap();
 
     info!("fetching information for {stripped} version {version}");
@@ -56,20 +64,5 @@ fn get_version(path: &str, version: &str) -> Result<Version, anyhow::Error> {
         .iter()
         .find(|p| p.version == version)
         .ok_or_else(|| anyhow!("{stripped} version {version} does not exist"))
-        .cloned()
-}
-
-fn get_installer() -> Result<Installer, anyhow::Error> {
-    let formatted_url = format!("{BASE_URL}/installer");
-
-    info!("fetching latest installer");
-
-    let resp: Vec<Installer> = ureq::get(&formatted_url)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
-        .call()?
-        .into_json()?;
-
-    resp.first()
-        .ok_or_else(|| anyhow!("failed to retrieve latest installer"))
         .cloned()
 }

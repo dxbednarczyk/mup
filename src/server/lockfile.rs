@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use log::info;
 use serde::{Deserialize, Serialize};
 use versions::Versioning;
@@ -61,7 +61,7 @@ pub struct Entry {
 }
 
 impl Lockfile {
-    pub fn init() -> Result<Self, anyhow::Error> {
+    pub fn init() -> Result<Self> {
         if PathBuf::from(LOCKFILE_PATH).exists() {
             let mut current_lockfile = File::open(LOCKFILE_PATH)?;
 
@@ -81,7 +81,7 @@ impl Lockfile {
         })
     }
 
-    pub fn with_params(minecraft_version: &str, loader: &str) -> Result<Self, anyhow::Error> {
+    pub fn with_params(minecraft_version: &str, loader: &str) -> Result<Self> {
         let mv = Versioning::new(minecraft_version).unwrap();
         if mv.is_complex() {
             return Err(anyhow!(
@@ -108,7 +108,7 @@ impl Lockfile {
         Ok(lf)
     }
 
-    pub fn get(&self, project_id: &str) -> Result<&Entry, anyhow::Error> {
+    pub fn get(&self, project_id: &str) -> Result<&Entry> {
         self.projects
             .iter()
             .find(|p| p.slug == project_id)
@@ -120,9 +120,9 @@ impl Lockfile {
         version: &actions::Version,
         slug: &str,
         project_file: &actions::ProjectFile,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<()> {
         let entry = Entry {
-            slug: slug.to_string(),
+            slug: slug.into(),
             project_id: version.project_id.clone(),
             version_id: version.id.clone(),
             path: project_file.path.clone(),
@@ -142,18 +142,12 @@ impl Lockfile {
         Ok(())
     }
 
-    pub fn remove(
-        &mut self,
-        slug: &str,
-        keep_jarfile: bool,
-        remove_orphans: bool,
-    ) -> Result<(), anyhow::Error> {
+    pub fn remove(&mut self, slug: &str, keep_jarfile: bool, remove_orphans: bool) -> Result<()> {
         if self.get(slug).is_err() {
             return Err(anyhow!("project {slug} does not exist in the lockfile"));
         }
 
         let mut projects = self.projects.iter();
-        let mut to_remove = vec![];
 
         let idx = projects
             .position(|p| p.slug == slug)
@@ -161,23 +155,21 @@ impl Lockfile {
 
         let entry = self.projects[idx].clone();
 
-        to_remove.push(entry.slug);
+        let mut to_remove = vec![entry.slug];
 
-        if remove_orphans {
-            for dep in entry.requires {
-                let cant_be_removed = projects.any(|p| {
-                    if p.slug == slug {
-                        return false;
-                    }
+        for dep in entry.requires {
+            if !remove_orphans {
+                break;
+            }
 
-                    let contains = p.requires.iter().find(|d| **d == dep);
+            let cant_be_removed = projects.any(|p| {
+                let contains = p.requires.iter().find(|d| **d == dep);
 
-                    contains.is_some()
-                });
+                contains.is_some() && p.slug != slug
+            });
 
-                if !cant_be_removed {
-                    to_remove.push(dep);
-                }
+            if !cant_be_removed {
+                to_remove.push(dep);
             }
         }
 
@@ -208,7 +200,7 @@ impl Lockfile {
         !version.is_complex() && loader::parse(&self.loader.name).is_ok()
     }
 
-    pub fn save(&mut self) -> Result<(), anyhow::Error> {
+    pub fn save(&mut self) -> Result<()> {
         info!("saving transaction to lockfile");
 
         let mut output = fs::OpenOptions::new()
