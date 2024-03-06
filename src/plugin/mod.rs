@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use clap::Subcommand;
 use log::warn;
 use serde::{Deserialize, Serialize};
-use sha2::Sha512;
+use sha2::{Sha256, Sha512};
 
 use crate::{loader, server::lockfile::Lockfile};
 
@@ -131,6 +131,8 @@ pub fn add(
             warn!("project {project_id} does not support server side, skipping");
             return Ok(());
         }
+
+        return Err(info.err().unwrap());
     }
 
     let info = info.unwrap();
@@ -175,9 +177,13 @@ pub fn download(source: &str, loader_name: &str, checksum: Option<&String>) -> R
         io::copy(&mut resp.into_reader(), &mut file)?;
     }
 
-    pap::download_with_checksum::<Sha512>(
-        source,
-        &PathBuf::from(file_path),
-        checksum.as_ref().unwrap(),
-    )
+    let (method, hash) = checksum.unwrap().split_once('#').unwrap();
+
+    let source = source.split_once('#').unwrap().1;
+
+    match method {
+        "sha512" => pap::download_with_checksum::<Sha512>(source, &PathBuf::from(file_path), hash),
+        "sha256" => pap::download_with_checksum::<Sha256>(source, &PathBuf::from(file_path), hash),
+        _ => unimplemented!(),
+    }
 }

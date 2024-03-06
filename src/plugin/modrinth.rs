@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use crate::server::lockfile::Lockfile;
 
-pub const BASE_URL: &str = "https://api.modrinth.com/v2";
+const BASE_URL: &str = "https://api.modrinth.com/v2";
 
 #[derive(Clone, Deserialize)]
 pub struct Version {
@@ -113,7 +113,14 @@ pub fn fetch(lockfile: &Lockfile, id: &str, version: &str) -> Result<super::Info
         version: version_info.id,
         source: format!("modrinth#{}", project_file.url),
         checksum: Some(format!("sha512#{}", project_file.hashes.sha512)),
-        dependencies: vec![],
+        dependencies: version_info
+            .dependencies
+            .iter()
+            .map(|d| super::Dependency {
+                id: d.id.clone(),
+                required: d.required,
+            })
+            .collect(),
     };
 
     Ok(info)
@@ -134,7 +141,7 @@ fn get_specific_version(
         .call()?
         .into_json()?;
 
-    if project.id != resp.project_id {
+    if project.slug != resp.project_id {
         return Err(anyhow!(
             "version id {version} is not a part of project {}",
             project.slug
@@ -172,19 +179,22 @@ fn get_latest_version(slug: &str, minecraft_version: &String, loader: &String) -
 
     info!("fetching latest version of {slug}");
 
-    let resp: Vec<Version> = req.call()?.into_json()?;
+    let resp = req.call()?.into_string()?;
 
-    let version = resp
-        .iter()
-        .find(|p| p.game_versions.contains(minecraft_version))
-        .ok_or_else(|| anyhow!("could not find a matching version"))?;
+    println!("{resp}");
+    unreachable!();
 
-    if !version.loaders.contains(loader) {
-        return Err(anyhow!(
-            "project version ID {} does not support loader {loader}",
-            version.id
-        ));
-    }
+    // let version = resp
+    //     .iter()
+    //     .find(|p| p.game_versions.contains(minecraft_version))
+    //     .ok_or_else(|| anyhow!("could not find a matching version"))?;
 
-    Ok(version.clone())
+    // if !version.loaders.contains(loader) {
+    //     return Err(anyhow!(
+    //         "project version ID {} does not support loader {loader}",
+    //         version.id
+    //     ));
+    // }
+
+    // Ok(version.clone())
 }
