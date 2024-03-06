@@ -179,22 +179,19 @@ fn get_latest_version(slug: &str, minecraft_version: &String, loader: &String) -
 
     info!("fetching latest version of {slug}");
 
-    let resp = req.call()?.into_string()?;
+    let resp: Vec<Version> = req.call()?.into_json()?;
 
-    println!("{resp}");
-    unreachable!();
+    let version = resp
+        .iter()
+        .find(|p| p.game_versions.contains(minecraft_version))
+        .ok_or_else(|| anyhow!("could not find a matching version"))?;
 
-    // let version = resp
-    //     .iter()
-    //     .find(|p| p.game_versions.contains(minecraft_version))
-    //     .ok_or_else(|| anyhow!("could not find a matching version"))?;
+    if !version.loaders.contains(loader) {
+        return Err(anyhow!(
+            "project version ID {} does not support loader {loader}",
+            version.id
+        ));
+    }
 
-    // if !version.loaders.contains(loader) {
-    //     return Err(anyhow!(
-    //         "project version ID {} does not support loader {loader}",
-    //         version.id
-    //     ));
-    // }
-
-    // Ok(version.clone())
+    Ok(version.clone())
 }

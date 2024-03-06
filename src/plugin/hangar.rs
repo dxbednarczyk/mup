@@ -39,7 +39,23 @@ struct HDependency {
     required: bool,
 }
 
+#[derive(Deserialize)]
+struct ProjectInfo {
+    name: String,
+}
+
 pub fn fetch(lockfile: &Lockfile, project_id: &str, version: &str) -> Result<super::Info> {
+    info!("fetching info of project {project_id}");
+
+    let formatted_url = format!("{BASE_URL}/projects/{project_id}");
+
+    let project_info: ProjectInfo = ureq::get(&formatted_url)
+        .set("User-Agent", FAKE_USER_AGENT)
+        .call()?
+        .into_json()?;
+
+    let project_id = project_info.name;
+
     let version = if version == "latest" {
         info!("fetching latest version of project {project_id}");
 
@@ -93,7 +109,7 @@ pub fn fetch(lockfile: &Lockfile, project_id: &str, version: &str) -> Result<sup
     };
 
     let info = super::Info {
-        slug: project_id.into(),
+        slug: project_id.clone(),
         id: project_id.into(),
         version,
         source: format!("hangar#{}", version_info.downloads[&loader].url),

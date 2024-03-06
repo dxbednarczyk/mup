@@ -70,6 +70,7 @@ impl Info {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Dependency {
+    #[serde(alias = "project_id")]
     pub id: String,
     #[serde(skip)]
     required: bool,
@@ -168,6 +169,8 @@ pub fn download(source: &str, loader_name: &str, checksum: Option<&String>) -> R
     let filename = source.rsplit_once('/').unwrap().1;
     let file_path = format!("{}/{}", loader::location(loader_name), filename);
 
+    let source = source.split_once('#').unwrap().1;
+
     if checksum.is_none() {
         let resp = ureq::get(source)
             .set("User-Agent", pap::FAKE_USER_AGENT)
@@ -178,8 +181,6 @@ pub fn download(source: &str, loader_name: &str, checksum: Option<&String>) -> R
     }
 
     let (method, hash) = checksum.unwrap().split_once('#').unwrap();
-
-    let source = source.split_once('#').unwrap().1;
 
     match method {
         "sha512" => pap::download_with_checksum::<Sha512>(source, &PathBuf::from(file_path), hash),
