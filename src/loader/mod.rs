@@ -17,6 +17,14 @@ pub fn fetch(loader: &str, minecraft_version: &str, version: &str) -> Result<()>
     }
 }
 
+pub fn location(loader: &str) -> &str {
+    match loader {
+        "paper" => "plugins",
+        "fabric" | "forge" | "neoforge" => "mods",
+        _ => unreachable!(),
+    }
+}
+
 pub fn parse(input: &str) -> Result<String> {
     if !VALID_LOADERS.contains(&input) {
         return Err(anyhow!("try one of {VALID_LOADERS:?}"));

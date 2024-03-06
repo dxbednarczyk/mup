@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write, path::PathBuf};
+use std::{fs::File, io::Write, path::Path};
 
 use anyhow::{anyhow, Result};
 use log::info;
@@ -8,7 +8,7 @@ pub const FAKE_USER_AGENT: &str =
 
 pub fn download_with_checksum<T: sha2::Digest + Write>(
     url: &str,
-    path: &PathBuf,
+    path: &Path,
     wanted_hash: &str,
 ) -> Result<()> {
     info!("downloading jarfile from {url}");

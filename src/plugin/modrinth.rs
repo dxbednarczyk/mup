@@ -1,12 +1,9 @@
 #![allow(clippy::case_sensitive_file_extension_comparisons)]
 
-use std::path::PathBuf;
-
 use anyhow::{anyhow, Result};
-use log::{info, warn};
-use pap::{download_with_checksum, FAKE_USER_AGENT};
-use serde::{Deserialize, Serialize};
-use sha2::Sha512;
+use log::info;
+use pap::FAKE_USER_AGENT;
+use serde::Deserialize;
 
 use crate::server::lockfile::Lockfile;
 
@@ -14,37 +11,19 @@ pub const BASE_URL: &str = "https://api.modrinth.com/v2";
 
 #[derive(Clone, Deserialize)]
 pub struct Version {
-    game_versions: Vec<String>,
-    loaders: Vec<String>,
     pub id: String,
     pub project_id: String,
+    pub dependencies: Vec<super::Dependency>,
+    game_versions: Vec<String>,
+    loaders: Vec<String>,
     files: Vec<ProjectFile>,
-    pub dependencies: Vec<Dependency>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Dependency {
-    pub project_id: String,
-    pub dependency_type: String,
-}
-
-impl Dependency {
-    fn required(&self) -> Option<Self> {
-        if self.dependency_type.as_str() == "required" {
-            return Some(self.to_owned());
-        }
-
-        None
-    }
 }
 
 #[derive(Clone, Deserialize)]
 pub struct ProjectFile {
     pub hashes: Hashes,
     pub url: String,
-    pub filename: String,
-    #[serde(skip)]
-    pub path: PathBuf,
+    filename: String,
 }
 
 #[derive(Clone, Deserialize)]
@@ -62,11 +41,7 @@ pub struct ProjectInfo {
     versions: Vec<String>,
 }
 
-pub fn fetch(
-    lockfile: &Lockfile,
-    id: &str,
-    version_input: Option<&str>,
-) -> Result<(Version, ProjectInfo, ProjectFile)> {
+pub fn fetch(lockfile: &Lockfile, id: &str, version: &str) -> Result<super::Info> {
     let formatted_url = format!("{BASE_URL}/project/{id}");
 
     info!("Fetching project info for {id}");
@@ -77,7 +52,6 @@ pub fn fetch(
         .into_json()?;
 
     if project_info.server_side == "unsupported" {
-        warn!("project {id} does not support server side, skipping");
         return Err(anyhow!("client side"));
     }
 
@@ -98,7 +72,6 @@ pub fn fetch(
         ));
     }
 
-    let version = version_input.unwrap();
     if version != "latest" && !project_info.versions.contains(&version.to_string()) {
         return Err(anyhow!("project version {version} does not exist"));
     }
@@ -128,79 +101,33 @@ pub fn fetch(
         )?
     };
 
-    let project_file = save(&lockfile.loader.project_path(), &version_info)?;
-
-    Ok((version_info, project_info, project_file))
-}
-
-pub fn add(
-    lockfile: &mut Lockfile,
-    id: &str,
-    version_input: Option<&str>,
-    optional_deps: bool,
-    no_deps: bool,
-) -> Result<()> {
-    if lockfile.get(id).is_ok() || lockfile.projects.iter().any(|p| p.project_id == id) {
-        warn!("project id {id} already has an entry in the lockfile, skipping");
-
-        return Ok(());
-    }
-
-    let (mut version, project_info, project_file) = match fetch(lockfile, id, version_input) {
-        Ok(r) => r,
-        Err(e) => {
-            if e.to_string() == "client side" {
-                return Ok(());
-            }
-
-            return Err(e);
-        }
-    };
-
-    if no_deps {
-        version.dependencies.clear();
-    }
-
-    if !optional_deps {
-        version.dependencies = version
-            .dependencies
-            .iter()
-            .filter_map(Dependency::required)
-            .collect();
-    }
-
-    lockfile.add(&version, &project_info.slug, &project_file)?;
-
-    for dep in version.dependencies {
-        add(lockfile, &dep.project_id, Some("latest"), false, false)?;
-    }
-
-    Ok(())
-}
-
-fn save(project_path: &str, version: &Version) -> Result<ProjectFile> {
-    let project_file: &ProjectFile = version
+    let project_file = version_info
         .files
         .iter()
         .find(|f| f.filename.ends_with(".jar"))
         .unwrap();
 
-    let save_to = PathBuf::from(&format!("{}{}", project_path, project_file.filename));
+    let info = super::Info {
+        slug: project_info.slug,
+        id: project_info.id,
+        version: version_info.id,
+        source: format!("modrinth#{}", project_file.url),
+        checksum: Some(format!("sha512#{}", project_file.hashes.sha512)),
+        dependencies: vec![],
+    };
 
-    download_with_checksum::<Sha512>(&project_file.url, &save_to, &project_file.hashes.sha512)?;
-
-    Ok(project_file.clone())
+    Ok(info)
 }
 
 fn get_specific_version(
     project: &ProjectInfo,
-    version_id: &str,
-    minecraft_input: &String,
+    version: &str,
+    minecraft_version: &String,
     loader: &String,
 ) -> Result<Version> {
-    let formatted_url = format!("{BASE_URL}/version/{version_id}");
+    let formatted_url = format!("{BASE_URL}/version/{version}");
 
-    info!("fetching version {version_id} of {}", project.slug);
+    info!("fetching version {version} of {}", project.slug);
 
     let resp: Version = ureq::get(&formatted_url)
         .set("User-Agent", FAKE_USER_AGENT)
@@ -209,20 +136,20 @@ fn get_specific_version(
 
     if project.id != resp.project_id {
         return Err(anyhow!(
-            "version id {version_id} is not a part of project {}",
+            "version id {version} is not a part of project {}",
             project.slug
         ));
     }
 
-    if !resp.game_versions.contains(minecraft_input) {
+    if !resp.game_versions.contains(minecraft_version) {
         return Err(anyhow!(
-            "version id {version_id} does not support minecraft version {minecraft_input}"
+            "version id {version} does not support Minecraft version {minecraft_version}"
         ));
     }
 
     if !resp.loaders.contains(loader) {
         return Err(anyhow!(
-            "project version {version_id} does not support loader {loader}",
+            "project version {version} does not support loader {loader}",
         ));
     }
 

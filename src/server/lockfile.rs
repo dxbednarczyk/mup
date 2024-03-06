@@ -1,9 +1,6 @@
-#![allow(clippy::cast_possible_truncation)]
-
 use std::{
     fs::{self, File},
     io::{Read, Write},
-    os::unix::fs::MetadataExt,
     path::PathBuf,
 };
 
@@ -12,17 +9,17 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use versions::Versioning;
 
-use crate::{loader, project::actions};
+use crate::{loader, plugin};
 
 const LOCKFILE_PATH: &str = "pap.lock";
 
-#[derive(Debug, Deserialize, Default, Serialize)]
+#[derive(Deserialize, Default, Serialize)]
 pub struct Lockfile {
     pub loader: Loader,
-    pub projects: Vec<Entry>,
+    pub projects: Vec<plugin::Info>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Loader {
     pub name: String,
     pub minecraft_version: String,
@@ -39,35 +36,12 @@ impl Default for Loader {
     }
 }
 
-impl Loader {
-    pub fn project_path(&self) -> String {
-        match self.name.as_str() {
-            "fabric" | "forge" => String::from("./mods/"),
-            "paper" => String::from("./plugins/"),
-            _ => unimplemented!(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Entry {
-    pub slug: String,
-    pub project_id: String,
-    pub version_id: String,
-    pub path: PathBuf,
-    pub remote: String,
-    pub sha512: String,
-    pub requires: Vec<String>,
-}
-
 impl Lockfile {
     pub fn init() -> Result<Self> {
         if PathBuf::from(LOCKFILE_PATH).exists() {
             let mut current_lockfile = File::open(LOCKFILE_PATH)?;
 
-            let lockfile_size = current_lockfile.metadata()?.size();
-            let mut contents = String::with_capacity(lockfile_size as usize);
-
+            let mut contents = String::new();
             current_lockfile.read_to_string(&mut contents)?;
 
             return Ok(serde_json::from_str(&contents)?);
@@ -108,34 +82,15 @@ impl Lockfile {
         Ok(lf)
     }
 
-    pub fn get(&self, project_id: &str) -> Result<&Entry> {
+    pub fn get(&self, project_id: &str) -> Result<&plugin::Info> {
         self.projects
             .iter()
             .find(|p| p.slug == project_id)
             .ok_or_else(|| anyhow!("key {project_id} not found"))
     }
 
-    pub fn add(
-        &mut self,
-        version: &actions::Version,
-        slug: &str,
-        project_file: &actions::ProjectFile,
-    ) -> Result<()> {
-        let entry = Entry {
-            slug: slug.into(),
-            project_id: version.project_id.clone(),
-            version_id: version.id.clone(),
-            path: project_file.path.clone(),
-            remote: project_file.url.clone(),
-            sha512: project_file.hashes.sha512.clone(),
-            requires: version
-                .dependencies
-                .iter()
-                .map(|d| d.project_id.clone())
-                .collect(),
-        };
-
-        self.projects.push(entry);
+    pub fn add(&mut self, info: plugin::Info) -> Result<()> {
+        self.projects.push(info);
 
         self.save()?;
 
@@ -157,19 +112,19 @@ impl Lockfile {
 
         let mut to_remove = vec![entry.slug];
 
-        for dep in entry.requires {
+        for dep in entry.dependencies {
             if !remove_orphans {
                 break;
             }
 
             let cant_be_removed = projects.any(|p| {
-                let contains = p.requires.iter().find(|d| **d == dep);
+                let contains = p.dependencies.iter().find(|d| **d == dep);
 
                 contains.is_some() && p.slug != slug
             });
 
             if !cant_be_removed {
-                to_remove.push(dep);
+                to_remove.push(dep.id);
             }
         }
 
@@ -177,11 +132,11 @@ impl Lockfile {
             let idx = self
                 .projects
                 .iter()
-                .position(|p| p.slug == slug || p.project_id == slug)
+                .position(|p| p.slug == slug || p.id == slug)
                 .ok_or_else(|| anyhow!("{slug} does not exist in the lockfile"))?;
 
             if !keep_jarfile {
-                fs::remove_file(&self.projects[idx].path)?;
+                fs::remove_file(&self.projects[idx].get_file_path(&self.loader.name))?;
             }
 
             self.projects.remove(idx);

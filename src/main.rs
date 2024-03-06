@@ -6,7 +6,7 @@ use std::env;
 use clap::{Parser, Subcommand};
 
 mod loader;
-mod project;
+mod plugin;
 mod server;
 
 use anyhow::Result;
@@ -27,9 +27,10 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Download a modloader jarfile
+    #[clap(alias = "l")]
     Loader {
         /// Name of the loader to download
-        #[arg(value_name = "loader", value_parser = loader::parse)]
+        #[arg(short, long, value_name = "loader", value_parser = loader::parse)]
         name: String,
 
         /// Minecraft version to target
@@ -41,12 +42,14 @@ enum Commands {
         version: String,
     },
 
-    /// Work with Modrinth plugins and mods
+    /// Work with plugins and mods
     #[command(subcommand)]
-    Project(project::Project),
+    #[clap(alias = "p")]
+    Plugin(plugin::Plugin),
 
     /// Initialize and configure a server
     #[command(subcommand)]
+    #[clap(alias = "s")]
     Server(server::Server),
 }
 
@@ -65,7 +68,7 @@ fn main() -> Result<()> {
             minecraft_version,
             version,
         }) => loader::fetch(name, minecraft_version, version)?,
-        Some(Commands::Project(p)) => project::action(p)?,
+        Some(Commands::Plugin(p)) => plugin::action(p)?,
         Some(Commands::Server(s)) => server::action(s)?,
         None => (),
     }
