@@ -16,7 +16,7 @@ const LOCKFILE_PATH: &str = "pap.lock";
 #[derive(Deserialize, Default, Serialize)]
 pub struct Lockfile {
     pub loader: Loader,
-    pub projects: Vec<plugin::Info>,
+    pub plugins: Vec<plugin::Info>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -51,7 +51,7 @@ impl Lockfile {
 
         Ok(Self {
             loader: Loader::default(),
-            projects: vec![],
+            plugins: vec![],
         })
     }
 
@@ -74,7 +74,7 @@ impl Lockfile {
 
         let mut lf = Self {
             loader: l,
-            projects: vec![],
+            plugins: vec![],
         };
 
         lf.save()?;
@@ -83,14 +83,14 @@ impl Lockfile {
     }
 
     pub fn get(&self, project_id: &str) -> Result<&plugin::Info> {
-        self.projects
+        self.plugins
             .iter()
             .find(|p| p.slug == project_id)
             .ok_or_else(|| anyhow!("key {project_id} not found"))
     }
 
     pub fn add(&mut self, info: plugin::Info) -> Result<()> {
-        self.projects.push(info);
+        self.plugins.push(info);
 
         self.save()?;
 
@@ -102,13 +102,13 @@ impl Lockfile {
             return Err(anyhow!("project {slug} does not exist in the lockfile"));
         }
 
-        let mut projects = self.projects.iter();
+        let mut plugins = self.plugins.iter();
 
-        let idx = projects
+        let idx = plugins
             .position(|p| p.slug == slug)
             .ok_or_else(|| anyhow!("{slug} does not exist in the lockfile"))?;
 
-        let entry = self.projects[idx].clone();
+        let entry = self.plugins[idx].clone();
 
         let mut to_remove = vec![entry.slug];
 
@@ -117,10 +117,11 @@ impl Lockfile {
                 break;
             }
 
-            let cant_be_removed = projects.any(|p| {
-                let contains = p.dependencies.iter().find(|d| **d == dep);
+            let cant_be_removed = plugins.any(|p| {
+                let is_different = p.slug != slug;
+                let requires_dep = p.dependencies.iter().any(|d| *d == dep && d.required);
 
-                contains.is_some() && p.slug != slug
+                is_different && requires_dep
             });
 
             if !cant_be_removed {
@@ -130,16 +131,16 @@ impl Lockfile {
 
         for slug in to_remove {
             let idx = self
-                .projects
+                .plugins
                 .iter()
                 .position(|p| p.slug == slug || p.id == slug)
                 .ok_or_else(|| anyhow!("{slug} does not exist in the lockfile"))?;
 
             if !keep_jarfile {
-                fs::remove_file(&self.projects[idx].get_file_path(&self.loader.name))?;
+                fs::remove_file(&self.plugins[idx].get_file_path(&self.loader.name))?;
             }
 
-            self.projects.remove(idx);
+            self.plugins.remove(idx);
         }
 
         self.save()?;

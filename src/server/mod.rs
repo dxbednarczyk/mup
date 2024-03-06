@@ -72,7 +72,7 @@ fn install() -> Result<()> {
         &lf.loader.version,
     )?;
 
-    for entry in &lf.projects {
+    for entry in &lf.plugins {
         plugin::download(&entry.source, &lf.loader.name, entry.checksum.as_ref())?;
     }
 

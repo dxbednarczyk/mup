@@ -73,7 +73,7 @@ pub struct Dependency {
     #[serde(alias = "project_id")]
     pub id: String,
     #[serde(skip)]
-    required: bool,
+    pub required: bool,
 }
 
 impl PartialEq for Dependency {
@@ -138,14 +138,16 @@ pub fn add(
 
     let info = info.unwrap();
 
-    if !no_deps {
-        for dep in &info.dependencies {
-            if !dep.required && !optional_deps {
-                continue;
-            }
-
-            add(provider, &dep.id, "latest", false, false)?;
+    for dep in &info.dependencies {
+        if no_deps {
+            break;
         }
+
+        if !dep.required && !optional_deps {
+            continue;
+        }
+
+        add(provider, &dep.id, "latest", false, false)?;
     }
 
     download(&info.source, &lockfile.loader.name, info.checksum.as_ref())?;

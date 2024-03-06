@@ -94,7 +94,7 @@ pub fn fetch(lockfile: &Lockfile, id: &str, version: &str) -> Result<super::Info
         )?
     } else {
         get_specific_version(
-            &project_info,
+            &project_info.slug,
             version,
             &lockfile.loader.minecraft_version,
             &lockfile.loader.name,
@@ -127,24 +127,24 @@ pub fn fetch(lockfile: &Lockfile, id: &str, version: &str) -> Result<super::Info
 }
 
 fn get_specific_version(
-    project: &ProjectInfo,
+    slug: &str,
     version: &str,
     minecraft_version: &String,
     loader: &String,
 ) -> Result<Version> {
     let formatted_url = format!("{BASE_URL}/version/{version}");
 
-    info!("fetching version {version} of {}", project.slug);
+    info!("fetching version {version} of {slug}");
 
     let resp: Version = ureq::get(&formatted_url)
         .set("User-Agent", FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
-    if project.slug != resp.project_id {
+    if slug != resp.project_id {
         return Err(anyhow!(
             "version id {version} is not a part of project {}",
-            project.slug
+            slug
         ));
     }
 
