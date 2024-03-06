@@ -70,6 +70,8 @@ pub fn fetch(lockfile: &Lockfile, project_id: &str, version: &str) -> Result<sup
         version.into()
     };
 
+    info!("fetching info for {project_id} v{version}");
+
     let formatted_url = format!("{BASE_URL}/projects/{project_id}/versions/{version}");
 
     let version_info: VersionInfo = ureq::get(&formatted_url)
@@ -110,7 +112,7 @@ pub fn fetch(lockfile: &Lockfile, project_id: &str, version: &str) -> Result<sup
 
     let info = super::Info {
         slug: project_id.clone(),
-        id: project_id.into(),
+        id: project_id,
         version,
         source: format!("hangar#{}", version_info.downloads[&loader].url),
         checksum: Some(format!(
