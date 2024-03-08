@@ -175,7 +175,7 @@ pub fn download(source: &str, loader_name: &str, checksum: Option<&String>) -> R
 
     if checksum.is_none() {
         let resp = ureq::get(source)
-            .set("User-Agent", pap::FAKE_USER_AGENT)
+            .set("User-Agent", mup::FAKE_USER_AGENT)
             .call()?;
 
         let mut file = File::create(&file_path)?;
@@ -185,8 +185,8 @@ pub fn download(source: &str, loader_name: &str, checksum: Option<&String>) -> R
     let (method, hash) = checksum.unwrap().split_once('#').unwrap();
 
     match method {
-        "sha512" => pap::download_with_checksum::<Sha512>(source, &PathBuf::from(file_path), hash),
-        "sha256" => pap::download_with_checksum::<Sha256>(source, &PathBuf::from(file_path), hash),
+        "sha512" => mup::download_with_checksum::<Sha512>(source, &PathBuf::from(file_path), hash),
+        "sha256" => mup::download_with_checksum::<Sha256>(source, &PathBuf::from(file_path), hash),
         _ => unimplemented!(),
     }
 }

@@ -11,7 +11,7 @@ use versions::Versioning;
 
 use crate::{loader, plugin};
 
-const LOCKFILE_PATH: &str = "pap.lock";
+const LOCKFILE_PATH: &str = "mup.lock";
 
 #[derive(Deserialize, Default, Serialize)]
 pub struct Lockfile {

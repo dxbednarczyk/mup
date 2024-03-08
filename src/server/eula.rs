@@ -15,7 +15,7 @@ pub fn sign() -> Result<()> {
             .open("eula.txt")?
     };
 
-    file.write_all(b"# Signed by pap\neula=true")?;
+    file.write_all(b"# Signed by mup\neula=true")?;
 
     Ok(())
 }

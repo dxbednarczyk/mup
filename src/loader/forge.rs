@@ -29,7 +29,7 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<()> {
     info!("fetching promos");
 
     let promos = ureq::get(PROMOS_URL)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?
         .into_json::<PromosResponse>()?
         .promos;
@@ -60,7 +60,7 @@ pub fn fetch(minecraft_version: &str, installer_version: &str) -> Result<()> {
     info!("downloading installer jarfile");
 
     let resp = ureq::get(&formatted_url)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?;
 
     let filename = format!("forge-{minecraft}-{installer}.jar");

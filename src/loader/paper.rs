@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
 use log::info;
-use pap::download_with_checksum;
+use mup::download_with_checksum;
 use serde::Deserialize;
 use sha2::Sha256;
 
@@ -63,7 +63,7 @@ fn get_latest_version() -> Result<String, anyhow::Error> {
     info!("fetching latest Minecraft version");
 
     let body: Versions = ureq::get(BASE_URL)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
@@ -82,7 +82,7 @@ fn get_build(minecraft_version: &str, build: &str) -> Result<Build> {
     info!("fetching build {build} for {minecraft_version}");
 
     let body: Builds = ureq::get(formatted_url.as_str())
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 

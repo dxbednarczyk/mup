@@ -2,7 +2,7 @@
 
 use anyhow::{anyhow, Result};
 use log::info;
-use pap::FAKE_USER_AGENT;
+use mup::FAKE_USER_AGENT;
 use serde::Deserialize;
 
 use crate::server::lockfile::Lockfile;

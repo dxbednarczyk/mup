@@ -20,7 +20,7 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<()> {
     info!("fetching latest installer");
 
     let resp: Vec<Version> = ureq::get(&formatted_url)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
@@ -34,7 +34,7 @@ pub fn fetch(minecraft_version: &str, loader_version: &str) -> Result<()> {
     info!("downloading jarfile");
 
     let resp = ureq::get(&formatted_url)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?;
 
     let mut file = File::create("fabric.jar")?;
@@ -49,7 +49,7 @@ fn get_version(path: &str, version: &str) -> Result<Version> {
     info!("fetching information for {stripped} version {version}");
 
     let versions: Vec<Version> = ureq::get(&format!("{BASE_URL}{path}"))
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 

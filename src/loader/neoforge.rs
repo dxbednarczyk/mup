@@ -49,7 +49,7 @@ pub fn fetch(minecraft_version: &str) -> Result<()> {
     info!("fetching latest installer version for minecraft {minecraft_version}");
 
     let installer: Installer = ureq::get(&formatted_url)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
@@ -61,7 +61,7 @@ pub fn fetch(minecraft_version: &str) -> Result<()> {
     info!("downloading installer jarfile");
 
     let resp = ureq::get(&installer_url)
-        .set("User-Agent", pap::FAKE_USER_AGENT)
+        .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?;
 
     let filename = format!("neoforge-{minecraft_version}-{}.jar", installer.version);
