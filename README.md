@@ -1,4 +1,4 @@
-# pap-ng
+# mup
 
 This is a spiritual successor to the original, now abandoned (?) [pap](https://github.com/talwat/pap), rewritten in Rust.
 
