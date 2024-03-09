@@ -8,7 +8,7 @@ use mup::FAKE_USER_AGENT;
 use serde::Deserialize;
 use versions::Versioning;
 
-const BASE_URL: &str = "https://hangar.mupermc.io/api/v1";
+const BASE_URL: &str = "https://hangar.papermc.io/api/v1";
 
 #[derive(Deserialize)]
 struct VersionInfo {
