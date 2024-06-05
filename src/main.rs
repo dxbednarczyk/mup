@@ -1,5 +1,4 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
-#![feature(lazy_cell)]
 
 use std::env;
 
@@ -57,7 +56,9 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     if cli.verbose {
-        env::set_var("RUST_LOG", String::from("info"));
+        unsafe {
+            env::set_var("RUST_LOG", String::from("info"));
+        }
     }
 
     pretty_env_logger::init();
