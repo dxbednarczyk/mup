@@ -5,11 +5,11 @@ use log::{info, warn};
 use serde::Deserialize;
 use versions::Versioning;
 
-static MINECRAFT_CUTOFF: LazyLock<Versioning> =
+static CUTOFF: LazyLock<Versioning> =
     LazyLock::new(|| Versioning::new("1.20.1").unwrap());
 
-const BASE_API_URL: &str = "https://maven.neoforged.net/api/maven/latest/version/releases";
-const BASE_DOWNLOAD_URL: &str = "https://maven.neoforged.net/releases";
+const API_URL: &str = "https://maven.neoforged.net/api/maven/latest/version/releases/net/neoforged/neoforge";
+const DOWNLOAD_URL: &str = "https://maven.neoforged.net/releases/net/neoforged/neoforge";
 
 #[derive(Deserialize)]
 struct Installer {
@@ -26,36 +26,22 @@ pub fn fetch(minecraft_version: &str) -> Result<()> {
 
     let parsed_version = Versioning::new(minecraft_version).unwrap();
 
-    if parsed_version < *MINECRAFT_CUTOFF {
+    if parsed_version <= *CUTOFF {
         return Err(anyhow!(
-            "neoforge does not support Minecraft versions before 1.20.1"
+            "neoforge is not recommended for Minecraft versions before 1.20.2"
         ));
     }
 
-    let suffix = if parsed_version <= *MINECRAFT_CUTOFF {
-        "forge"
-    } else {
-        "neoforge"
-    };
-
-    let gav = format!("/net/neoforged/{suffix}");
-
-    let formatted_url = if parsed_version == *MINECRAFT_CUTOFF {
-        format!("{BASE_API_URL}{gav}?filter=1.20.1")
-    } else {
-        format!("{BASE_API_URL}{gav}")
-    };
-
     info!("fetching latest installer version for minecraft {minecraft_version}");
 
-    let installer: Installer = ureq::get(&formatted_url)
+    let installer: Installer = ureq::get(&API_URL)
         .set("User-Agent", mup::FAKE_USER_AGENT)
         .call()?
         .into_json()?;
 
     let installer_url = format!(
-        "{BASE_DOWNLOAD_URL}{gav}/{}/{}-{}-installer.jar",
-        installer.version, suffix, installer.version
+        "{DOWNLOAD_URL}/{}/neoforge-{}-installer.jar",
+        installer.version, installer.version
     );
 
     info!("downloading installer jarfile");
